@@ -107,13 +107,14 @@ data shape but aren't used by the Schedule tool itself.
   current group's rank in their preferences — blue for a great match, shading through
   green, yellow, and orange down to red for a poor one (5th choice or worse, all sharing
   the same red), or a dark red "!" if they're in a group they didn't rank at all.
-- **Place 1st Choices**: puts everyone still unassigned into their 1st-choice group,
-  unconditionally.
-- **Fill Under-Minimum Groups**: works down each under-filled group's list of interested
-  people by rank (2nd choice, then 3rd, ...), pulling from whichever other group
-  currently has the biggest surplus over its own minimum first. Can be re-run any time
-  and considers anyone currently placed with ranked preferences, not just people it
-  placed itself. Anything still under-filled afterward is left for manual adjustment.
+- **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
+  everyone still unassigned into their 1st-choice group, unconditionally. Each
+  **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an
+  under-filled group in from wherever they're currently sitting, preferring to pull from
+  whichever group has the biggest surplus over its own minimum first — run 2nd, then
+  3rd, and so on as needed, checking the board between steps. Any step can be re-run any
+  time. Leaders are never moved by these steps (they're placed by hand and stay put).
+  Anything still under-filled afterward is left for manual adjustment.
 - **Save / Export**: same as the Schedule tool — "Save" downloads the full project
   JSON, "Export CSV" downloads one row per person with their group, rank, and match
   emoji.

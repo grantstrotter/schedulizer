@@ -30,8 +30,7 @@
     <button id="btn-import-signup">Import Sign-Up (CSV)&hellip;</button>
     <button id="btn-help">Help</button>
     <span class="spacer"></span>
-    <button id="btn-assign-first-choice">Place 1st Choices</button>
-    <button id="btn-fill-under-min">Fill Under-Minimum Groups</button>
+    <select id="auto-assign-select"><option value="" selected disabled>Auto-Assign&hellip;</option></select>
     <button id="btn-export-json">Save</button>
     <button id="btn-export-csv">Export CSV</button>
     <a href="index.html" class="tool-switch-link">&larr; Home</a>
@@ -99,13 +98,15 @@
         groups.</p>
 
       <h3>Placing by preference</h3>
-      <p><strong>Place 1st Choices</strong> puts everyone still unassigned into their 1st
-        choice group, unconditionally. <strong>Fill Under-Minimum Groups</strong> then works
-        down each under-filled group's list of interested people (2nd choice, then 3rd, and so
-        on), pulling from whichever other group currently has the biggest surplus over its
-        minimum first — it can be run again any time (e.g. after manual adjustments) and
-        works on anyone currently placed with ranked preferences, not just people it placed
-        itself. Anything still under-filled afterward is left for you to adjust by hand.</p>
+      <p>The <strong>Auto-Assign&hellip;</strong> menu runs one placement step at a time, so
+        you can check the board between steps. <strong>Place 1st Choices</strong> puts
+        everyone still unassigned into their 1st choice group, unconditionally. Each
+        <strong>Fill Under-Minimum: Nth Choices</strong> step then pulls people whose Nth
+        choice is an under-filled group in from wherever they're currently sitting,
+        preferring to pull from whichever group has the biggest surplus over its minimum
+        first — run 2nd, then 3rd, and so on as needed. Any step can be re-run any time (e.g.
+        after manual adjustments). Leaders are never moved by these steps — they're placed by
+        hand and stay put. Anything still under-filled afterward is left for you to adjust.</p>
 
       <h3>Leader ⇄ Participant</h3>
       <p>Toggle the <strong>Leader</strong> checkbox on an expanded person card to flip their

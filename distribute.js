@@ -116,8 +116,20 @@ function render() {
 
   renderBoard();
   renderDrawers();
+  renderAutoAssignMenu();
   attachSortables();
   persist();
+}
+
+function renderAutoAssignMenu() {
+  const select = document.getElementById('auto-assign-select');
+  select.innerHTML = '';
+  select.appendChild(el('option', { attrs: { value: '', selected: '', disabled: '' }, text: 'Auto-Assign…' }));
+  select.appendChild(el('option', { attrs: { value: 'first' }, text: 'Place 1st Choices' }));
+  const maxRank = maxPreferenceRank();
+  for (let rank = 2; rank <= maxRank; rank++) {
+    select.appendChild(el('option', { attrs: { value: String(rank) }, text: `Fill Under-Minimum: ${ordinal(rank)} Choices` }));
+  }
 }
 
 // Badge color tier for a person's current group: 1 (best, coolest color) counts up to
@@ -433,10 +445,20 @@ function attachSortables() {
   });
 }
 
-// ---------- Auto-assign by preference (two separate, manually-triggered steps) ----------
+// ---------- Auto-assign by preference (leaders are pre-determined and never touched) ----------
+
+function ordinal(n) {
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const mod100 = n % 100;
+  return n + (suffixes[(mod100 - 20) % 10] || suffixes[mod100] || suffixes[0]);
+}
+
+function maxPreferenceRank() {
+  return Math.max(0, ...project.participants.map(p => p.preferences.length));
+}
 
 function assignFirstChoices() {
-  const unplaced = getAllPeople().filter(p => !isPersonPlaced(p.id) && p.preferences.length > 0);
+  const unplaced = project.participants.filter(p => !isPersonPlaced(p.id) && p.preferences.length > 0);
   if (unplaced.length === 0) {
     showToast('Nobody unassigned has ranked preferences to place.');
     return;
@@ -449,51 +471,44 @@ function assignFirstChoices() {
   showToast(`Placed ${unplaced.length} people in their 1st choice.`);
 }
 
-function fillUnderMinimumGroups() {
-  const pool = () => getAllPeople().filter(p => p.preferences.length > 0 && isPersonPlaced(p.id));
-  const maxRank = Math.max(0, ...pool().map(p => p.preferences.length));
-  if (maxRank === 0) {
-    showToast('No placed people have ranked preferences to pull from.');
-    return;
-  }
+// Pulls candidates into under-filled groups using their choice at exactly this rank,
+// preferring to pull from whichever group currently has the biggest surplus over its own
+// minimum. Only ever moves participants — leaders are placed by hand ahead of time and
+// are never candidates to move, though they still count toward a group's headcount.
+function fillUnderMinimumGroupsAtRank(rank) {
+  const pool = () => project.participants.filter(p => p.preferences.length > 0 && isPersonPlaced(p.id));
 
-  // Pull candidates into under-filled groups rank-by-rank (2nd choice, then 3rd, ...),
-  // preferring to pull from whichever group currently has the biggest surplus over its
-  // own minimum. Works on anyone currently placed with preference data, however they
-  // got there (auto-placed or manually dragged).
   let moved = 0;
-  for (let rank = 2; rank <= maxRank; rank++) {
-    const underfilled = project.groups
-      .filter(g => g.personIds.length < g.minimumRequired)
-      .sort((a, b) => (b.minimumRequired - b.personIds.length) - (a.minimumRequired - a.personIds.length));
+  const underfilled = project.groups
+    .filter(g => g.personIds.length < g.minimumRequired)
+    .sort((a, b) => (b.minimumRequired - b.personIds.length) - (a.minimumRequired - a.personIds.length));
 
-    underfilled.forEach(group => {
-      while (group.personIds.length < group.minimumRequired) {
-        const candidates = pool()
-          .filter(p => {
-            const currentGroup = getPersonGroup(p.id);
-            return currentGroup && currentGroup.id !== group.id && p.preferences[rank - 1] === group.id;
-          })
-          .sort((a, b) => {
-            const surplusA = getPersonGroup(a.id).personIds.length - getPersonGroup(a.id).minimumRequired;
-            const surplusB = getPersonGroup(b.id).personIds.length - getPersonGroup(b.id).minimumRequired;
-            return surplusB - surplusA;
-          });
-        if (candidates.length === 0) break;
-        const person = candidates[0];
-        const fromGroup = getPersonGroup(person.id);
-        fromGroup.personIds = fromGroup.personIds.filter(x => x !== person.id);
-        group.personIds.push(person.id);
-        moved++;
-      }
-    });
-  }
+  underfilled.forEach(group => {
+    while (group.personIds.length < group.minimumRequired) {
+      const candidates = pool()
+        .filter(p => {
+          const currentGroup = getPersonGroup(p.id);
+          return currentGroup && currentGroup.id !== group.id && p.preferences[rank - 1] === group.id;
+        })
+        .sort((a, b) => {
+          const surplusA = getPersonGroup(a.id).personIds.length - getPersonGroup(a.id).minimumRequired;
+          const surplusB = getPersonGroup(b.id).personIds.length - getPersonGroup(b.id).minimumRequired;
+          return surplusB - surplusA;
+        });
+      if (candidates.length === 0) break;
+      const person = candidates[0];
+      const fromGroup = getPersonGroup(person.id);
+      fromGroup.personIds = fromGroup.personIds.filter(x => x !== person.id);
+      group.personIds.push(person.id);
+      moved++;
+    }
+  });
 
   const stillUnder = project.groups.filter(g => g.personIds.length < g.minimumRequired);
   render();
   showToast(moved === 0
-    ? 'No moves were possible — no lower-ranked candidates available in surplus groups.'
-    : `Moved ${moved} people to fill under-minimum groups.${stillUnder.length ? ' ' + stillUnder.length + ' group' + (stillUnder.length === 1 ? '' : 's') + ' still under minimum.' : ' All groups meet their minimum.'}`);
+    ? `No moves were possible at ${ordinal(rank)} choice — nobody eligible in a surplus group.`
+    : `Moved ${moved} people using ${ordinal(rank)} choices.${stillUnder.length ? ' ' + stillUnder.length + ' group' + (stillUnder.length === 1 ? '' : 's') + ' still under minimum.' : ' All groups meet their minimum.'}`);
 }
 
 // ---------- Sign-up CSV import ----------
@@ -702,8 +717,12 @@ function wireToolbar() {
     e.target.value = '';
   });
 
-  document.getElementById('btn-assign-first-choice').addEventListener('click', assignFirstChoices);
-  document.getElementById('btn-fill-under-min').addEventListener('click', fillUnderMinimumGroups);
+  document.getElementById('auto-assign-select').addEventListener('change', (e) => {
+    const value = e.target.value;
+    e.target.value = ''; // reset to the placeholder — this is an action menu, not a persistent setting
+    if (value === 'first') assignFirstChoices();
+    else if (value) fillUnderMinimumGroupsAtRank(parseInt(value, 10));
+  });
   document.getElementById('btn-export-json').addEventListener('click', exportJSON);
   document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
 }

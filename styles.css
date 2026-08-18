@@ -16,7 +16,7 @@ body {
   color: #1a1d23;
 }
 
-button {
+button, select {
   font: inherit;
   padding: 6px 12px;
   border: 1px solid var(--border);

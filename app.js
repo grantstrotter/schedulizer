@@ -646,15 +646,27 @@ function parseCSVLine(line) {
   return line.split(',').map(s => s.trim());
 }
 
+function parseAvailability(raw) {
+  if (!raw) return [];
+  const abbrevToDay = {};
+  DAYS.forEach(d => { abbrevToDay[DAY_ABBR[d].toLowerCase()] = d; });
+  return raw.split('|')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+    .map(token => (DAYS.includes(token) ? token : abbrevToDay[token]))
+    .filter(Boolean);
+}
+
 function importCSVFile(file) {
   const reader = new FileReader();
   reader.onload = () => {
     const lines = reader.result.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lines.length < 2) return;
     lines.slice(1).forEach(line => {
-      const [first, last, phone, email, isLeaderRaw] = parseCSVLine(line);
+      const [first, last, phone, email, isLeaderRaw, availabilityRaw] = parseCSVLine(line);
       const isLeader = ['true', '1', 'yes', 'y'].includes((isLeaderRaw || '').toLowerCase());
-      const person = { id: uid(), first: first || '', last: last || '', phone: phone || '', email: email || '', isLeader, availability: [] };
+      const availability = parseAvailability(availabilityRaw);
+      const person = { id: uid(), first: first || '', last: last || '', phone: phone || '', email: email || '', isLeader, availability };
       if (isLeader) project.leaders.push(person);
       else project.participants.push(person);
     });

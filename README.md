@@ -20,7 +20,10 @@ browser window). No server needed.
 - **People**: either imported via "Import People (CSV)" or added one at a time with
   "+ Add Leader" / "+ Add Participant" in the toolbar — expand the new (blank) card to
   fill in first/last name, phone, and email inline. CSV columns, in order, no header
-  variations: `first,last,phone,email,isLeader` (isLeader: `true`/`1`/`yes` = leader).
+  variations: `first,last,phone,email,isLeader,availability` (isLeader: `true`/`1`/`yes`
+  = leader; availability is optional, a `|`-separated list of days — full names or the
+  app's own abbreviations, e.g. `sunday|thursday` or `Sun|Thu` — leave blank for no
+  restriction).
 - **Placing people**: drag a person card from a drawer onto a day (unassigned within that
   day) or onto a group (nested as a child of that group — it moves with the group from
   then on).

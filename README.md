@@ -5,15 +5,15 @@ Pure HTML/CSS/JS, no build step, one CDN dependency ([SortableJS](https://sortab
 
 ## Running it
 
-Just open `index.html` directly in a browser (double-click it, or drag it into a
+Open `index.html` directly in a browser (double-click it, or drag it into a
 browser window). No server needed.
 
 ## Usage
 
 - **Start**: if you have an in-progress session auto-saved in this browser, it resumes
-  automatically — no empty state, no extra click. Only with no autosave present do you
-  see the empty state, where you can start a new project or open an existing `.json`
-  project file (click or drag-and-drop it onto the page).
+  automatically. Only with no autosave present do you see the empty state, where you can
+  start a new project or open an existing `.json` project file (click or drag-and-drop
+  it onto the page).
 - **Groups**: created via "+ Add Group" in the toolbar. They start in the Groups drawer;
   drag them onto a day column to schedule them. A group can only be on one day at a time.
   Name is editable inline.

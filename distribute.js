@@ -383,13 +383,48 @@ function renderPersonCard(person) {
   });
   detail.appendChild(grid);
 
-  if (person.preferences.length > 0) {
-    const prefBlock = el('div', { class: 'contact-line preferences-list' });
-    prefBlock.appendChild(el('div', { text: 'Prefers:' }));
-    person.preferences.forEach((gid, i) => {
-      const g = findGroup(gid);
-      prefBlock.appendChild(el('div', { class: 'preference-line', text: `${i + 1}. ${g ? g.name : '(deleted group)'}` }));
+  if (project.groups.length > 0) {
+    const prefBlock = el('div', { class: 'contact-line preferences-editor' });
+    prefBlock.appendChild(el('div', { text: 'Group ranking:' }));
+
+    const resyncRankSelects = () => {
+      prefBlock.querySelectorAll('.rank-select').forEach(sel => {
+        const rank = person.preferences.indexOf(sel.dataset.groupId);
+        sel.value = rank === -1 ? '' : String(rank + 1);
+      });
+    };
+
+    // Setting a rank means "move this group to position N, shifting everyone else
+    // down" (like reordering a priority list) — not "resolve conflicts by tie-break",
+    // which would silently ignore the very change the user just made whenever it
+    // collided with an existing rank.
+    const setGroupRank = (groupId, rank) => {
+      person.preferences = person.preferences.filter(id => id !== groupId);
+      if (rank !== null) {
+        const index = Math.max(0, Math.min(rank - 1, person.preferences.length));
+        person.preferences.splice(index, 0, groupId);
+      }
+      resyncRankSelects();
+      persist();
+    };
+
+    sortedGroups().forEach(g => {
+      const row = el('div', { class: 'preference-row' });
+      row.appendChild(el('span', { class: 'preference-group-name', text: g.name }));
+      const select = el('select', { class: 'rank-select', attrs: { 'data-group-id': g.id } });
+      select.appendChild(el('option', { attrs: { value: '' }, text: '—' }));
+      for (let r = 1; r <= project.groups.length; r++) {
+        select.appendChild(el('option', { attrs: { value: String(r) }, text: String(r) }));
+      }
+      const currentRank = person.preferences.indexOf(g.id);
+      select.value = currentRank === -1 ? '' : String(currentRank + 1);
+      select.addEventListener('change', () => {
+        setGroupRank(g.id, select.value ? parseInt(select.value, 10) : null);
+      });
+      row.appendChild(select);
+      prefBlock.appendChild(row);
     });
+
     detail.appendChild(prefBlock);
   }
 

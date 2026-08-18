@@ -112,6 +112,10 @@ data shape but aren't used by the Schedule tool itself.
   current group's rank in their preferences — blue for a great match, shading through
   green, yellow, and orange down to red for a poor one (5th choice or worse, all sharing
   the same red), or a dark red "!" if they're in a group they didn't rank at all.
+- **Editing preferences by hand**: expand any person's card (once at least one group
+  exists) for a **Group ranking** section — a dropdown per group to set, change, or
+  clear their rank directly. Works for leaders too, since they don't usually come from
+  the sign-up CSV but may still have real preferences worth recording.
 - **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
   everyone still unassigned into their 1st-choice group, unconditionally. Each
   **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an

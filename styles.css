@@ -375,11 +375,27 @@ button:hover { background: #eef1f5; }
   background: var(--card-bg);
 }
 
-.preferences-list {
+.preferences-editor {
   font-size: 0.9em;
 }
-.preference-line {
+.preference-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding-left: 8px;
+  margin-top: 2px;
+}
+.preference-group-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rank-select {
+  width: 3.2em;
+  padding: 0 2px;
+  font-size: 0.95em;
 }
 
 /* ---------- Candidate highlighting (Distribute tool) ---------- */

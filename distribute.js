@@ -161,6 +161,13 @@ function sortedGroups() {
 function renderBoard() {
   const board = document.getElementById('groups-board');
   board.innerHTML = '';
+  if (project.groups.length === 0) {
+    board.appendChild(el('div', {
+      class: 'board-empty-hint',
+      text: 'No groups yet — click "Import Sign-Up (CSV)…" above to derive groups from your sign-up form (or open a project file that already has them).'
+    }));
+    return;
+  }
   sortedGroups().forEach(g => board.appendChild(renderGroupCard(g)));
 }
 

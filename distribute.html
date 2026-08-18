@@ -79,16 +79,19 @@
         file you can keep or reopen later.</p>
 
       <h3>Importing a sign-up CSV</h3>
-      <p>Export responses from your Google Form as CSV. This tool looks for columns whose
-        header contains a group name in brackets, e.g. <code>Which groups would you prefer to
-        do? [Wednesday Night - Young Adults]</code>, with values like <code>1st Choice</code>,
-        <code>2nd Choice</code>, etc. One group is created per such column — even if nobody
-        ranked it — and the night is parsed out of the group's name when it starts with a day
-        name, purely for availability checking. It also expects a <code>Name</code> column
-        (split on the first space into first/last), and optionally <code>Email</code>,
-        <code>Phone</code>, and an availability column (comma-separated day names). Importing
-        again adds new people; a row whose email matches an existing leader merges into that
-        leader instead of creating a duplicate.</p>
+      <p>This is built specifically for a Google Forms <strong>Multiple-choice grid</strong>
+        question, with each group as a grid <em>row</em> and choices labeled
+        <code>1st Choice</code>, <code>2nd Choice</code>, etc. as grid <em>columns</em> — not
+        Forms' separate dedicated "Ranking" question type, which exports differently and
+        won't parse here. Export responses as CSV; this tool looks for columns whose header
+        contains a group name in brackets, e.g. <code>Which groups would you prefer to do?
+        [Wednesday Night - Young Adults]</code>. One group is created per such column — even
+        if nobody ranked it — and the night is parsed out of the group's name when a day name
+        appears anywhere in it, purely for availability checking. It also expects a
+        <code>Name</code> column (split on the first space into first/last), and optionally
+        <code>Email</code>, <code>Phone</code>, and an availability column (comma-separated
+        day names). Importing again adds new people; a row whose email matches an existing
+        leader merges into that leader instead of creating a duplicate.</p>
 
       <h3>Groups</h3>
       <p>Groups sit side-by-side on the board — there's no day grid here, since a group's

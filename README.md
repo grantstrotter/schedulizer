@@ -92,14 +92,17 @@ data shape but aren't used by the Schedule tool itself.
 - **Groups**: not created manually — import a sign-up CSV (see below) to derive them
   from the form's own columns, or open a `.json` project that already has them. Each
   group's minimum is editable inline (click the number in its card, defaults to 10).
-- **Import Sign-Up (CSV)**: expects a Google Forms export with a `Name` column and one
-  column per group question, headers containing the group name in brackets (e.g.
-  `Which groups would you prefer to do? [Wednesday Night - Young Adults]`) with values
-  like `1st Choice`, `2nd Choice`, etc. One group is created per such column, even if
-  nobody ranked it. If a day name appears anywhere in the group's name, that's parsed
-  out for availability checking. Optional `Email`, `Phone`, and an availability column
-  (comma-separated day names) are also read if present. Importing again adds new people
-  and merges into an existing person by matching email, rather than duplicating them.
+- **Import Sign-Up (CSV)**: built specifically for a Google Forms **Multiple-choice
+  grid** question — each group as a grid row, choices labeled `1st Choice`,
+  `2nd Choice`, etc. as grid columns. (Not Forms' separate dedicated "Ranking" question
+  type — that exports differently and won't parse here.) Expects a `Name` column and
+  one column per group row, headers containing the group name in brackets (e.g.
+  `Which groups would you prefer to do? [Wednesday Night - Young Adults]`). One group is
+  created per such column, even if nobody ranked it. If a day name appears anywhere in
+  the group's name, that's parsed out for availability checking. Optional `Email`,
+  `Phone`, and an availability column (comma-separated day names) are also read if
+  present. Importing again adds new people and merges into an existing person by
+  matching email, rather than duplicating them.
 - **Placing people**: drag a leader or participant from a drawer straight into a group
   (no day grid here — groups sit side-by-side since their night was already decided in
   the Schedule tool, sorted by that day then alphabetically). Availability is checked

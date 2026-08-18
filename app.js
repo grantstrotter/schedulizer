@@ -368,6 +368,13 @@ function relocateIfNeeded(node, targetList) {
 }
 
 function checkPersonMoveAllowed(evt) {
+  // Never preview a person against the raw Groups row itself (a day's groups-list or
+  // the Groups drawer) — only a specific group's own nested People list is a valid
+  // target, so aiming for that nested drop zone doesn't shuffle the group cards.
+  if (evt.to.dataset.container === 'day-groups' || evt.to.id === 'drawer-groups') {
+    return false;
+  }
+
   const personId = evt.dragged.dataset.personId;
   const person = findPerson(personId);
 
@@ -387,14 +394,7 @@ function checkPersonMoveAllowed(evt) {
   }
 
   clearDragBlockToast();
-
-  // A drop directly into a group's own nested People list is a valid zone as-is.
-  if (!isPeopleZone(evt.to)) {
-    relocateIfNeeded(evt.dragged, dayColumn.querySelector(':scope > .people-list'));
-    return false;
-  }
-
-  return true;
+  return true; // evt.to is already a valid people zone at this point (day-people or group-people)
 }
 
 function checkGroupMoveAllowed(evt) {

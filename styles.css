@@ -173,6 +173,9 @@ button:hover { background: #eef1f5; }
   padding: 6px 8px;
   margin-bottom: 6px;
 }
+.group-card:last-child, .person-card:last-child {
+  margin-bottom: 0; /* avoid doubling up with the parent list's own bottom padding */
+}
 
 .drawer-list > .group-card,
 .drawer-list > .person-card {
@@ -199,7 +202,7 @@ button:hover { background: #eef1f5; }
   cursor: grab;
   color: var(--text-muted);
   user-select: none;
-  padding: 0 2px;
+  padding: 0 5px;
 }
 
 .inline-input {

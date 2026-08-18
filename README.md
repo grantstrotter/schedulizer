@@ -5,36 +5,8 @@ Pure HTML/CSS/JS, no build step, one CDN dependency ([SortableJS](https://sortab
 
 ## Running it
 
-Just open `index.html` in a browser, or serve the folder with any static server, e.g.:
-
-```
-cd ~/source/personal/schedulizer
-python3 -m http.server 8080
-```
-
-then visit `http://localhost:8080`.
-
-## Deploying to GitHub Pages
-
-The whole app is static files with relative paths and one CDN script, so it works
-as-is on GitHub Pages — no build step, no config needed. To publish it:
-
-```
-cd ~/source/personal/schedulizer
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin <your-repo-url>
-git push -u origin main
-```
-
-Then in the repo's GitHub Settings → Pages, set the source to the `main` branch,
-root folder, and save. It'll be live at `https://<username>.github.io/<repo>/`
-within a minute or two.
-
-(A `.nojekyll` file is included so GitHub Pages serves the files directly instead
-of running them through Jekyll, which isn't needed here and could otherwise ignore
-files/folders that start with `_`.)
+Just open `index.html` directly in a browser (double-click it, or drag it into a
+browser window). No server needed.
 
 ## Usage
 

@@ -196,13 +196,15 @@ button:hover { background: #eef1f5; }
   align-items: center;
   gap: 6px;
   user-select: none;
+  cursor: grab;
 }
 
 .drag-handle {
+  /* purely decorative now — the whole title row (card-row / summary) is the actual handle */
   cursor: grab;
   color: var(--text-muted);
   user-select: none;
-  padding: 0 5px;
+  padding: 0 2px;
 }
 
 .inline-input {

@@ -210,13 +210,34 @@ function renderGroupCard(group) {
   const row = el('div', { class: 'card-row' });
   row.appendChild(el('span', { class: 'drag-handle', text: '⠿' }));
 
-  const nameInput = el('input', { class: 'inline-input group-name', attrs: { type: 'text', value: group.name } });
-  nameInput.value = group.name;
-  nameInput.addEventListener('input', () => { group.name = nameInput.value; persist(); });
-  row.appendChild(nameInput);
+  const nameSpan = el('span', { class: 'group-name', text: group.name || '(unnamed group)' });
+  row.appendChild(nameSpan);
+
+  const editBtn = el('button', { class: 'icon-btn group-edit-btn', text: '✎', attrs: { title: 'Rename group' } });
+  editBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const input = el('input', { class: 'inline-input group-name', attrs: { type: 'text' } });
+    input.value = group.name;
+    nameSpan.replaceWith(input);
+    input.focus();
+    input.select();
+    const commit = () => {
+      group.name = input.value;
+      nameSpan.textContent = group.name || '(unnamed group)';
+      input.replaceWith(nameSpan);
+      persist();
+    };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (ke) => {
+      if (ke.key === 'Enter') input.blur();
+      if (ke.key === 'Escape') { input.value = group.name; input.blur(); }
+    });
+  });
+  row.appendChild(editBtn);
 
   const delBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Delete group' } });
-  delBtn.addEventListener('click', () => {
+  delBtn.addEventListener('click', (e) => {
+    e.preventDefault();
     if (!confirm(`Delete group "${group.name}"? People inside will return to their drawer.`)) return;
     removeGroupFromAllPlacements(group.id);
     project.groups = project.groups.filter(g => g.id !== group.id);
@@ -259,6 +280,22 @@ function renderPersonCard(person) {
   });
   summary.appendChild(delBtn);
   details.appendChild(summary);
+
+  // Since the whole summary is now the drag handle, Sortable's own pointer handling
+  // intercepts every click on it — the native <details> click-to-toggle became
+  // unreliable (needed a double click). Drive the toggle ourselves off a simple
+  // pointerdown/click distance check instead of depending on that native behavior.
+  let pointerDownPos = null;
+  summary.addEventListener('pointerdown', (e) => {
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+  });
+  summary.addEventListener('click', (e) => {
+    if (e.target.closest('.icon-btn')) return; // let the delete button handle its own click
+    e.preventDefault();
+    const moved = pointerDownPos && Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y) >= 5;
+    if (!moved) details.open = !details.open;
+    pointerDownPos = null;
+  });
 
   const detail = el('div', { class: 'person-detail' });
 
@@ -497,9 +534,15 @@ function attachSortables() {
     ...Array.from(document.querySelectorAll('.people-list'))
   ];
   containers.forEach(container => {
+    const isGroupsContainer = container.id === 'drawer-groups' || container.classList.contains('groups-list');
     sortables.push(Sortable.create(container, {
       group: 'board',
-      handle: '.drag-handle',
+      // Both card types are grabbable by their whole title row now, not just the tiny
+      // icon — the icon/edit/delete buttons and the (rare, mid-rename) name input are
+      // excluded via filter so they keep behaving as plain clicks.
+      handle: isGroupsContainer ? '.card-row' : 'summary',
+      filter: '.icon-btn, input',
+      preventOnFilter: false,
       animation: 150,
       forceFallback: true,
       onMove: checkBoardMoveAllowed,
@@ -639,8 +682,7 @@ function wireToolbar() {
     const id = uid();
     project.groups.push({ id, name: 'New Group', personIds: [] });
     render();
-    const nameInput = document.querySelector(`.group-card[data-group-id="${id}"] .group-name`);
-    if (nameInput) { nameInput.focus(); nameInput.select(); }
+    document.querySelector(`.group-card[data-group-id="${id}"] .group-edit-btn`)?.click();
   });
 
   document.getElementById('btn-add-leader').addEventListener('click', (e) => {

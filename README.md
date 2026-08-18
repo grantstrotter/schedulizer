@@ -119,11 +119,15 @@ data shape but aren't used by the Schedule tool itself.
 - **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
   everyone still unassigned into their 1st-choice group, unconditionally. Each
   **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an
-  under-filled group in from wherever they're currently sitting, preferring to pull from
-  whichever group has the biggest surplus over its own minimum first — run 2nd, then
-  3rd, and so on as needed, checking the board between steps. Any step can be re-run any
-  time. Leaders are never moved by these steps (they're placed by hand and stay put).
-  Anything still under-filled afterward is left for manual adjustment.
+  under-filled group in from whichever other group currently has more people —
+  prioritizing evening out group sizes overall, so a group already at its own minimum
+  can still donate to one far below its minimum, as long as the donor doesn't end up
+  smaller than the group it just helped. It keeps working until nothing more can be
+  evened out at this rank, so one click reaches a stable result (re-running the same
+  step again immediately is a no-op). Run 2nd, then 3rd, and so on as needed, checking
+  the board between steps. Leaders are never moved by these steps (they're placed by
+  hand and stay put). Anything still under-filled afterward is left for manual
+  adjustment.
 - **Highlight Candidates**: each group has a button that shimmers everyone outside that
   group (elsewhere or unplaced) who ranked it, colored by the same rank-badge colors —
   plus a small number badge in the corner with the exact rank, so it's not

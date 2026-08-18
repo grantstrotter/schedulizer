@@ -120,11 +120,15 @@
         you can check the board between steps. <strong>Place 1st Choices</strong> puts
         everyone still unassigned into their 1st choice group, unconditionally. Each
         <strong>Fill Under-Minimum: Nth Choices</strong> step then pulls people whose Nth
-        choice is an under-filled group in from wherever they're currently sitting,
-        preferring to pull from whichever group has the biggest surplus over its minimum
-        first — run 2nd, then 3rd, and so on as needed. Any step can be re-run any time (e.g.
-        after manual adjustments). Leaders are never moved by these steps — they're placed by
-        hand and stay put. Anything still under-filled afterward is left for you to adjust.</p>
+        choice is an under-filled group in from whichever other group currently has more
+        people — it prioritizes evening out group sizes overall, so a group already sitting
+        at its own minimum can still donate to one far below its minimum, as long as doing
+        so doesn't leave the donor smaller than the group it just helped. It keeps working
+        until nothing more can be evened out at this rank, so one click reaches a stable
+        result — re-running the same step again immediately finds nothing left to do. Run
+        2nd, then 3rd, and so on as needed. Leaders are never moved by these steps — they're
+        placed by hand and stay put. Anything still under-filled afterward is left for you
+        to adjust.</p>
 
       <h3>Highlighting candidates</h3>
       <p>Each group card has a <strong>Highlight Candidates</strong> button — click it to

@@ -619,39 +619,52 @@ function assignFirstChoices() {
 // preferring to pull from whichever group currently has the biggest surplus over its own
 // minimum. Only ever moves participants — leaders are placed by hand ahead of time and
 // are never candidates to move, though they still count toward a group's headcount.
+// Evens out group sizes rather than treating each group's own minimum as a floor it
+// alone defends: a group sitting exactly at its minimum can still donate to a group
+// that's far below its own — what matters is which of the two currently has more
+// people, not whether the donor has "surplus" over its own separate target. The >=2
+// margin means a pull never leaves the donor smaller than the recipient it just
+// helped, so it can't immediately create a new problem of the same size it just fixed.
+// Recomputes group sizes fresh after every single move (not just once per click) so
+// this reaches a true fixed point in one run — otherwise fixing one group could dip a
+// donor below its own minimum, which would only get noticed (and only partially fixed)
+// on a second manual click, and so on.
 function fillUnderMinimumGroupsAtRank(rank) {
   const pool = () => project.participants.filter(p => p.preferences.length > 0 && isPersonPlaced(p.id));
 
   let moved = 0;
-  const underfilled = project.groups
-    .filter(g => g.personIds.length < g.minimumRequired)
-    .sort((a, b) => (b.minimumRequired - b.personIds.length) - (a.minimumRequired - a.personIds.length));
+  let progress = true;
+  while (progress) {
+    progress = false;
+    const underfilled = project.groups
+      .filter(g => g.personIds.length < g.minimumRequired)
+      .sort((a, b) => (b.minimumRequired - b.personIds.length) - (a.minimumRequired - a.personIds.length));
 
-  underfilled.forEach(group => {
-    while (group.personIds.length < group.minimumRequired) {
+    for (const group of underfilled) {
       const candidates = pool()
         .filter(p => {
           const currentGroup = getPersonGroup(p.id);
-          return currentGroup && currentGroup.id !== group.id && p.preferences[rank - 1] === group.id;
+          if (!currentGroup || currentGroup.id === group.id || p.preferences[rank - 1] !== group.id) return false;
+          return currentGroup.personIds.length - group.personIds.length >= 2;
         })
-        .sort((a, b) => {
-          const surplusA = getPersonGroup(a.id).personIds.length - getPersonGroup(a.id).minimumRequired;
-          const surplusB = getPersonGroup(b.id).personIds.length - getPersonGroup(b.id).minimumRequired;
-          return surplusB - surplusA;
-        });
-      if (candidates.length === 0) break;
-      const person = candidates[0];
-      const fromGroup = getPersonGroup(person.id);
-      fromGroup.personIds = fromGroup.personIds.filter(x => x !== person.id);
-      group.personIds.push(person.id);
-      moved++;
+        .sort((a, b) => getPersonGroup(b.id).personIds.length - getPersonGroup(a.id).personIds.length);
+
+      if (candidates.length > 0) {
+        const person = candidates[0];
+        const fromGroup = getPersonGroup(person.id);
+        fromGroup.personIds = fromGroup.personIds.filter(x => x !== person.id);
+        group.personIds.push(person.id);
+        moved++;
+        progress = true;
+        break; // restart from the most-deficient group with fresh sizes
+      }
     }
-  });
+  }
 
   const stillUnder = project.groups.filter(g => g.personIds.length < g.minimumRequired);
   render();
   showToast(moved === 0
-    ? `No moves were possible at ${ordinal(rank)} choice — nobody eligible in a surplus group.`
+    ? `No moves were possible at ${ordinal(rank)} choice — nobody eligible in a bigger group.`
     : `Moved ${moved} people using ${ordinal(rank)} choices.${stillUnder.length ? ' ' + stillUnder.length + ' group' + (stillUnder.length === 1 ? '' : 's') + ' still under minimum.' : ' All groups meet their minimum.'}`);
 }
 

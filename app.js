@@ -616,6 +616,14 @@ function wireEmptyState() {
   });
 }
 
+function focusNewPerson(id) {
+  const card = document.querySelector(`.person-card[data-person-id="${id}"]`);
+  if (!card) return;
+  card.open = true;
+  const firstInput = card.querySelector('input[placeholder="First name"]');
+  if (firstInput) firstInput.focus();
+}
+
 function wireToolbar() {
   document.getElementById('btn-new').addEventListener('click', () => newProject(true));
   document.getElementById('btn-open').addEventListener('click', () => document.getElementById('file-open-json-2').click());
@@ -628,19 +636,26 @@ function wireToolbar() {
 
   document.getElementById('btn-add-group').addEventListener('click', (e) => {
     e.preventDefault();
-    project.groups.push({ id: uid(), name: 'New Group', personIds: [] });
+    const id = uid();
+    project.groups.push({ id, name: 'New Group', personIds: [] });
     render();
+    const nameInput = document.querySelector(`.group-card[data-group-id="${id}"] .group-name`);
+    if (nameInput) { nameInput.focus(); nameInput.select(); }
   });
 
   document.getElementById('btn-add-leader').addEventListener('click', (e) => {
     e.preventDefault();
-    project.leaders.push({ id: uid(), first: '', last: '', phone: '', email: '', isLeader: true, availability: [] });
+    const id = uid();
+    project.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [] });
     render();
+    focusNewPerson(id);
   });
   document.getElementById('btn-add-participant').addEventListener('click', (e) => {
     e.preventDefault();
-    project.participants.push({ id: uid(), first: '', last: '', phone: '', email: '', isLeader: false, availability: [] });
+    const id = uid();
+    project.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [] });
     render();
+    focusNewPerson(id);
   });
 
   document.getElementById('btn-import-people').addEventListener('click', () => document.getElementById('file-import-csv').click());

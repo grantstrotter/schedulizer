@@ -134,7 +134,7 @@ button:hover { background: #eef1f5; }
   border: 1px solid var(--border);
   border-radius: 8px;
 }
-.drawer summary {
+.drawer > summary {
   cursor: pointer;
   padding: 8px 12px;
   font-weight: 600;
@@ -143,9 +143,9 @@ button:hover { background: #eef1f5; }
   align-items: center;
   gap: 8px;
 }
-.drawer summary::-webkit-details-marker { display: none; }
-.drawer summary::before { content: "▸ "; }
-.drawer[open] summary::before { content: "▾ "; }
+.drawer > summary::-webkit-details-marker { display: none; }
+.drawer > summary::before { content: "▸ "; }
+.drawer[open] > summary::before { content: "▾ "; }
 .count { font-weight: 400; color: var(--text-muted); }
 
 .drawer-add-btn {
@@ -173,10 +173,16 @@ button:hover { background: #eef1f5; }
   margin-bottom: 6px;
 }
 
-.drawer-list .group-card,
-.drawer-list .person-card {
+.drawer-list > .group-card,
+.drawer-list > .person-card {
   margin-bottom: 0;
-  width: 220px;
+}
+.drawer-list > .group-card {
+  min-width: 220px; /* can grow a bit to fit a long nested name... */
+  max-width: 260px; /* ...but capped, so an expanded nested card's wide inputs can't balloon it */
+}
+.drawer-list > .person-card {
+  width: 220px; /* fixed, so expanding it (wide inputs/checkboxes) doesn't balloon the card */
 }
 
 .group-card { background: #fff9ec; border-color: #e8d9ad; }
@@ -185,6 +191,7 @@ button:hover { background: #eef1f5; }
   display: flex;
   align-items: center;
   gap: 6px;
+  user-select: none;
 }
 
 .drag-handle {
@@ -240,6 +247,7 @@ button:hover { background: #eef1f5; }
   display: flex;
   align-items: center;
   gap: 4px;
+  user-select: none;
 }
 .person-card summary::-webkit-details-marker { display: none; }
 

@@ -27,8 +27,11 @@ browser window). No server needed.
   nights via checkboxes. Dragging a person onto a day they haven't checked as available
   is blocked, with a toast explaining why. A person with **no** availability checked yet
   is treated as unrestricted (so freshly-imported people aren't unassignable everywhere).
-- **Leader ⇄ Participant**: drag a person card between the Leaders and Participants
-  drawers to convert them. Only works while they're sitting in a drawer (unassigned).
+- **Leader ⇄ Participant**: expand a person card and toggle the "Leader" checkbox —
+  works whether they're unassigned in a drawer (they'll jump to the other drawer) or
+  already placed on a day/group (they just flip roles in place). Dragging a person
+  card between the Leaders and Participants drawers still works too, but only while
+  they're sitting unassigned in one.
 - **Save / Export**: "Save" downloads the full project file (re-open it later the same
   way). "Export CSV" downloads a flattened, spreadsheet-friendly view: one row per
   assigned person (day, group, name, contact, isLeader), plus a trailing block of

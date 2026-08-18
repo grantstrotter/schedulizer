@@ -243,7 +243,11 @@ function renderPersonCard(person) {
   summary.appendChild(handle);
   const nameSpan = el('span', { class: 'person-name', text: `${person.first} ${person.last}`.trim() || '(unnamed)' });
   summary.appendChild(nameSpan);
-  if (person.isLeader) summary.appendChild(el('span', { class: 'leader-badge', text: 'LEADER' }));
+  let badge = null;
+  if (person.isLeader) {
+    badge = el('span', { class: 'leader-emoji', text: '🎯' });
+    summary.appendChild(badge);
+  }
   const delBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Delete person' } });
   delBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -286,6 +290,40 @@ function renderPersonCard(person) {
   emailInput.value = person.email;
   emailInput.addEventListener('input', () => { person.email = emailInput.value; persist(); });
   detail.appendChild(emailInput);
+
+  const leaderRow = el('label', { class: 'contact-line leader-toggle' });
+  const leaderCb = el('input', { attrs: { type: 'checkbox' } });
+  leaderCb.checked = person.isLeader;
+  leaderRow.appendChild(leaderCb);
+  leaderRow.appendChild(document.createTextNode(' Leader'));
+  detail.appendChild(leaderRow);
+  leaderCb.addEventListener('change', () => {
+    person.isLeader = leaderCb.checked;
+    project.leaders = project.leaders.filter(p => p.id !== person.id);
+    project.participants = project.participants.filter(p => p.id !== person.id);
+    (person.isLeader ? project.leaders : project.participants).push(person);
+
+    if (person.isLeader && !badge) {
+      badge = el('span', { class: 'leader-emoji', text: '🎯' });
+      summary.insertBefore(badge, delBtn);
+    } else if (!person.isLeader && badge) {
+      badge.remove();
+      badge = null;
+    }
+
+    // If sitting unassigned in a drawer, move to the other drawer to match
+    const currentContainer = details.parentElement;
+    if (currentContainer && currentContainer.dataset.container === 'people-drawer') {
+      const targetDrawer = document.getElementById(person.isLeader ? 'drawer-leaders' : 'drawer-participants');
+      if (currentContainer.id !== targetDrawer.id) {
+        targetDrawer.appendChild(details);
+        document.getElementById('count-leaders').textContent = `(${document.querySelectorAll('#drawer-leaders > .person-card').length})`;
+        document.getElementById('count-participants').textContent = `(${document.querySelectorAll('#drawer-participants > .person-card').length})`;
+      }
+    }
+
+    persist();
+  });
 
   const availLabel = el('div', { class: 'contact-line', text: 'Available:' });
   detail.appendChild(availLabel);

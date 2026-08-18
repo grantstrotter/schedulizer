@@ -251,12 +251,7 @@ button:hover { background: #eef1f5; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leader-badge {
-  font-size: 0.7em;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 3px;
-  padding: 1px 5px;
+.leader-emoji {
   flex-shrink: 0;
 }
 
@@ -268,6 +263,13 @@ button:hover { background: #eef1f5; }
   color: var(--text-muted);
 }
 .person-detail .contact-line { margin-bottom: 4px; }
+
+.leader-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
 
 .availability-grid {
   display: flex;

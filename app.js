@@ -444,6 +444,12 @@ function checkGroupMoveAllowed(evt) {
   // drops back into the groups drawer carry no day and are always allowed
   if (!group || !targetDay) {
     clearDragBlockToast();
+    // A group must never nest inside another group's own People list — even when that
+    // host group is unplaced (no day), so no availability check applies here at all.
+    if (evt.to.dataset.container === 'group-people') {
+      relocateIfNeeded(evt.dragged, document.getElementById('drawer-groups'));
+      return false;
+    }
     return true;
   }
 

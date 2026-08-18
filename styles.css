@@ -266,7 +266,7 @@ button:hover { background: #eef1f5; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leader-emoji {
+.leader-emoji, .community-builder-emoji {
   flex-shrink: 0;
 }
 

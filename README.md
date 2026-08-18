@@ -116,6 +116,10 @@ data shape but aren't used by the Schedule tool itself.
   exists) for a **Group ranking** section — a dropdown per group to set, change, or
   clear their rank directly. Works for leaders too, since they don't usually come from
   the sign-up CSV but may still have real preferences worth recording.
+- **Community Builder**: a manual staff-only flag (checkbox on an expanded person card,
+  right below Leader) for people especially effective at building community. Always
+  starts unchecked and is never set by the sign-up import — only by hand. Shows a ⭐
+  badge next to their name when checked.
 - **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
   everyone still unassigned into their 1st-choice group, unconditionally. Each
   **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an

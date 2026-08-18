@@ -94,7 +94,8 @@ function normalizePerson(isLeader) {
     email: person.email || '',
     isLeader: person.isLeader !== undefined ? !!person.isLeader : isLeader,
     availability: Array.isArray(person.availability) ? person.availability.filter(d => DAYS.includes(d)) : [],
-    preferences: Array.isArray(person.preferences) ? person.preferences.filter(id => typeof id === 'string') : []
+    preferences: Array.isArray(person.preferences) ? person.preferences.filter(id => typeof id === 'string') : [],
+    communityBuilder: !!person.communityBuilder // manual-only flag, never set by CSV import
   });
 }
 
@@ -273,6 +274,17 @@ function renderPersonCard(person) {
   const nameSpan = el('span', { class: 'person-name', text: `${person.first} ${person.last}`.trim() || '(unnamed)' });
   summary.appendChild(nameSpan);
 
+  let leaderBadge = null;
+  if (person.isLeader) {
+    leaderBadge = el('span', { class: 'leader-emoji', text: '🎯' });
+    summary.appendChild(leaderBadge);
+  }
+  let communityBuilderBadge = null;
+  if (person.communityBuilder) {
+    communityBuilderBadge = el('span', { class: 'community-builder-emoji', text: '⭐', attrs: { title: 'Community Builder' } });
+    summary.appendChild(communityBuilderBadge);
+  }
+
   const currentGroup = getPersonGroup(person.id);
   let matchBadge = null;
   if (currentGroup) {
@@ -281,11 +293,6 @@ function renderPersonCard(person) {
     summary.appendChild(matchBadge);
   }
 
-  let leaderBadge = null;
-  if (person.isLeader) {
-    leaderBadge = el('span', { class: 'leader-emoji', text: '🎯' });
-    summary.appendChild(leaderBadge);
-  }
   const delBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Delete person' } });
   delBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -343,7 +350,7 @@ function renderPersonCard(person) {
 
     if (person.isLeader && !leaderBadge) {
       leaderBadge = el('span', { class: 'leader-emoji', text: '🎯' });
-      summary.insertBefore(leaderBadge, delBtn);
+      summary.insertBefore(leaderBadge, nameSpan.nextSibling); // always leftmost badge
     } else if (!person.isLeader && leaderBadge) {
       leaderBadge.remove();
       leaderBadge = null;
@@ -359,6 +366,24 @@ function renderPersonCard(person) {
       }
     }
 
+    persist();
+  });
+
+  const communityBuilderRow = el('label', { class: 'contact-line leader-toggle' });
+  const communityBuilderCb = el('input', { attrs: { type: 'checkbox' } });
+  communityBuilderCb.checked = person.communityBuilder;
+  communityBuilderRow.appendChild(communityBuilderCb);
+  communityBuilderRow.appendChild(document.createTextNode(' Community Builder'));
+  detail.appendChild(communityBuilderRow);
+  communityBuilderCb.addEventListener('change', () => {
+    person.communityBuilder = communityBuilderCb.checked;
+    if (person.communityBuilder && !communityBuilderBadge) {
+      communityBuilderBadge = el('span', { class: 'community-builder-emoji', text: '⭐', attrs: { title: 'Community Builder' } });
+      summary.insertBefore(communityBuilderBadge, matchBadge || delBtn); // after leader badge, before rank badge
+    } else if (!person.communityBuilder && communityBuilderBadge) {
+      communityBuilderBadge.remove();
+      communityBuilderBadge = null;
+    }
     persist();
   });
 
@@ -760,7 +785,7 @@ function importSignupCSVFile(file) {
         existing.preferences = preferences;
         merged++;
       } else {
-        const person = { id: uid(), first, last, phone, email, isLeader, availability, preferences };
+        const person = { id: uid(), first, last, phone, email, isLeader, availability, preferences, communityBuilder: false };
         (isLeader ? project.leaders : project.participants).push(person);
         imported++;
       }
@@ -856,14 +881,14 @@ function wireToolbar() {
   document.getElementById('btn-add-leader').addEventListener('click', (e) => {
     e.preventDefault();
     const id = uid();
-    project.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [] });
+    project.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [], communityBuilder: false });
     render();
     focusNewPerson(id);
   });
   document.getElementById('btn-add-participant').addEventListener('click', (e) => {
     e.preventDefault();
     const id = uid();
-    project.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [] });
+    project.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [], communityBuilder: false });
     render();
     focusNewPerson(id);
   });

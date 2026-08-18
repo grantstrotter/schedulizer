@@ -710,8 +710,17 @@ function wireToolbar() {
   document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
 }
 
+function wireKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 's') return;
+    e.preventDefault();
+    if (project) exportJSON();
+  });
+}
+
 wireEmptyState();
 wireToolbar();
+wireKeyboardShortcuts();
 
 // Resume automatically if a session was already in progress — landing back on the
 // empty state after a refresh/back-navigation would look like the work was lost.

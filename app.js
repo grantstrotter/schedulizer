@@ -98,11 +98,6 @@ function startApp() {
   render();
 }
 
-function backToEmptyState() {
-  document.getElementById('app').hidden = true;
-  document.getElementById('empty-state').hidden = false;
-}
-
 function newProject(confirmFirst) {
   if (confirmFirst && project && !confirm('Start a new project? This replaces the current one (still saved in local autosave until you start/open another).')) return;
   project = blankProject();
@@ -318,41 +313,60 @@ function renderPersonCard(person) {
 }
 
 // ---------- Drag and drop ----------
+//
+// Groups and people share one Sortable group ('board', set up in attachSortables) so
+// either can be dropped anywhere on a day column, not just its own sub-section. Each
+// check function below decides availability first, then — if the hover isn't already
+// over that item's proper zone — relocates the live preview there itself and returns
+// false, which tells Sortable "I've placed it, don't also insert it where you were
+// about to." normalizeBoardAdd applies the same relocation as a post-drop safety net.
+
+function isPeopleZone(container) {
+  return container.dataset.container === 'day-people' || container.dataset.container === 'group-people';
+}
+
+function relocateIfNeeded(node, targetList) {
+  if (targetList && node.parentElement !== targetList) targetList.appendChild(node);
+}
 
 function checkPersonMoveAllowed(evt) {
   const personId = evt.dragged.dataset.personId;
   const person = findPerson(personId);
 
-  const destContainer = evt.to;
-  let targetDay = null;
-  if (destContainer.dataset.container === 'day-people') {
-    targetDay = destContainer.dataset.day;
-  } else if (destContainer.dataset.container === 'group-people') {
-    targetDay = findGroupDay(destContainer.dataset.groupId);
-  }
-  // drawer drops, or drops into an unplaced group, carry no day and are always allowed
+  const dayColumn = evt.to.closest('.day-column');
+  const targetDay = dayColumn ? dayColumn.dataset.day : null;
 
-  const blocked = person && targetDay && person.availability.length > 0 && !person.availability.includes(targetDay);
-  if (!blocked) {
+  // drawer drops, or drops into an unplaced group, carry no day and are always allowed
+  if (!person || !targetDay) {
     clearDragBlockToast();
     return true;
   }
 
-  showDragBlockToast(`person:${personId}:${targetDay}`, `${person.first} ${person.last} is not marked available on ${DAY_LABELS[targetDay]}.`);
-  return false;
+  const blocked = person.availability.length > 0 && !person.availability.includes(targetDay);
+  if (blocked) {
+    showDragBlockToast(`person:${personId}:${targetDay}`, `${person.first} ${person.last} is not marked available on ${DAY_LABELS[targetDay]}.`);
+    return false; // blocked: leave the card wherever it currently is, don't relocate it
+  }
+
+  clearDragBlockToast();
+
+  // A drop directly into a group's own nested People list is a valid zone as-is.
+  if (!isPeopleZone(evt.to)) {
+    relocateIfNeeded(evt.dragged, dayColumn.querySelector(':scope > .people-list'));
+    return false;
+  }
+
+  return true;
 }
 
 function checkGroupMoveAllowed(evt) {
   const groupId = evt.dragged.dataset.groupId;
   const group = findGroup(groupId);
 
-  const destContainer = evt.to;
-  let targetDay = null;
-  if (destContainer.dataset.container === 'day-groups') {
-    targetDay = destContainer.dataset.day;
-  }
-  // drops back into the groups drawer carry no day and are always allowed
+  const dayColumn = evt.to.closest('.day-column');
+  const targetDay = dayColumn ? dayColumn.dataset.day : null;
 
+  // drops back into the groups drawer carry no day and are always allowed
   if (!group || !targetDay) {
     clearDragBlockToast();
     return true;
@@ -362,14 +376,21 @@ function checkGroupMoveAllowed(evt) {
     .map(findPerson)
     .filter(p => p && p.isLeader && p.availability.length > 0 && !p.availability.includes(targetDay));
 
-  if (unavailableLeaders.length === 0) {
-    clearDragBlockToast();
-    return true;
+  if (unavailableLeaders.length > 0) {
+    const names = unavailableLeaders.map(p => `${p.first} ${p.last}`.trim()).join(', ');
+    showDragBlockToast(`group:${groupId}:${targetDay}`, `${names} ${unavailableLeaders.length === 1 ? 'is' : 'are'} not marked available on ${DAY_LABELS[targetDay]}.`);
+    return false; // blocked: leave the card wherever it currently is, don't relocate it
   }
 
-  const names = unavailableLeaders.map(p => `${p.first} ${p.last}`.trim()).join(', ');
-  showDragBlockToast(`group:${groupId}:${targetDay}`, `${names} ${unavailableLeaders.length === 1 ? 'is' : 'are'} not marked available on ${DAY_LABELS[targetDay]}.`);
-  return false;
+  clearDragBlockToast();
+
+  const groupsList = dayColumn.querySelector(':scope > .groups-list');
+  if (evt.to !== groupsList) {
+    relocateIfNeeded(evt.dragged, groupsList);
+    return false;
+  }
+
+  return true;
 }
 
 function syncModelFromDom() {
@@ -407,34 +428,44 @@ function handleDragEnd() {
   render();
 }
 
-function attachSortables() {
-  const groupContainers = [
-    document.getElementById('drawer-groups'),
-    ...Array.from(document.querySelectorAll('.groups-list'))
-  ];
-  groupContainers.forEach(container => {
-    sortables.push(Sortable.create(container, {
-      group: 'groups',
-      handle: '.drag-handle',
-      animation: 150,
-      forceFallback: true,
-      onMove: checkGroupMoveAllowed,
-      onEnd: handleDragEnd
-    }));
-  });
+function normalizeBoardAdd(evt) {
+  const item = evt.item;
+  const dayColumn = evt.to.closest('.day-column');
 
-  const peopleContainers = [
+  if (item.dataset.type === 'group') {
+    relocateIfNeeded(item, dayColumn ? dayColumn.querySelector(':scope > .groups-list') : document.getElementById('drawer-groups'));
+    return;
+  }
+
+  // person: only relocate if it landed within a day but outside any valid People zone
+  if (dayColumn && !isPeopleZone(evt.to)) {
+    relocateIfNeeded(item, dayColumn.querySelector(':scope > .people-list'));
+  }
+}
+
+function checkBoardMoveAllowed(evt) {
+  return evt.dragged.dataset.type === 'group' ? checkGroupMoveAllowed(evt) : checkPersonMoveAllowed(evt);
+}
+
+function attachSortables() {
+  // Groups and people share one Sortable group so a dragged group is accepted anywhere
+  // on a day column (not just its Groups sub-section) — normalizeBoardAdd relocates it
+  // into the right list afterward, and checkBoardMoveAllowed still enforces availability.
+  const containers = [
+    document.getElementById('drawer-groups'),
     document.getElementById('drawer-leaders'),
     document.getElementById('drawer-participants'),
+    ...Array.from(document.querySelectorAll('.groups-list')),
     ...Array.from(document.querySelectorAll('.people-list'))
   ];
-  peopleContainers.forEach(container => {
+  containers.forEach(container => {
     sortables.push(Sortable.create(container, {
-      group: 'people',
+      group: 'board',
       handle: '.drag-handle',
       animation: 150,
       forceFallback: true,
-      onMove: checkPersonMoveAllowed,
+      onMove: checkBoardMoveAllowed,
+      onAdd: normalizeBoardAdd,
       onEnd: handleDragEnd
     }));
   });

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedulizer</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="empty-state">
+  <div class="empty-state-inner" id="dropzone">
+    <h1>Schedulizer</h1>
+    <p>Drag a project <code>.json</code> file here, or</p>
+    <div class="empty-state-actions">
+      <button id="btn-open-empty">Open Project File&hellip;</button>
+      <button id="btn-new-empty">Start New Project</button>
+      <button id="btn-resume-empty" hidden>Resume Last Session</button>
+    </div>
+    <input type="file" id="file-open-json" accept="application/json,.json" hidden>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <header class="toolbar">
+    <strong class="app-title">Schedulizer</strong>
+    <button id="btn-new">New Project</button>
+    <button id="btn-open">Open&hellip;</button>
+    <button id="btn-import-people">Import People (CSV)&hellip;</button>
+    <span class="spacer"></span>
+    <button id="btn-export-json">Export JSON</button>
+    <button id="btn-export-csv">Export CSV</button>
+    <input type="file" id="file-open-json-2" accept="application/json,.json" hidden>
+    <input type="file" id="file-import-csv" accept="text/csv,.csv" hidden>
+  </header>
+
+  <main class="days-row" id="days-row"></main>
+
+  <section class="drawers" id="drawers">
+    <details class="drawer" open>
+      <summary>Groups <span class="count" id="count-groups"></span><button id="btn-add-group" class="drawer-add-btn">+ Add Group</button></summary>
+      <div class="drawer-list" id="drawer-groups" data-container="groups-drawer"></div>
+    </details>
+    <details class="drawer" open>
+      <summary>Leaders <span class="count" id="count-leaders"></span><button id="btn-add-leader" class="drawer-add-btn">+ Add Leader</button></summary>
+      <div class="drawer-list" id="drawer-leaders" data-container="people-drawer" data-day="drawer"></div>
+    </details>
+    <details class="drawer" open>
+      <summary>Participants <span class="count" id="count-participants"></span><button id="btn-add-participant" class="drawer-add-btn">+ Add Participant</button></summary>
+      <div class="drawer-list" id="drawer-participants" data-container="people-drawer" data-day="drawer"></div>
+    </details>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -292,6 +292,16 @@ function renderPersonCard(person) {
     matchBadge = el('span', { class: `match-badge match-${info.tier}`, text: info.label, attrs: { title: info.tier === 'unranked' ? 'Not on this person’s preference list' : `Rank ${info.label} choice` } });
     summary.appendChild(matchBadge);
   }
+  // Editing this person's Group ranking below can change their current group's rank
+  // (directly, or indirectly via a shift when another group's rank collides) — refresh
+  // the summary badge in place rather than requiring a full render() to notice.
+  const refreshMatchBadge = () => {
+    if (!currentGroup || !matchBadge) return;
+    const info = matchInfo(person, currentGroup);
+    matchBadge.className = `match-badge match-${info.tier}`;
+    matchBadge.textContent = info.label;
+    matchBadge.title = info.tier === 'unranked' ? 'Not on this person’s preference list' : `Rank ${info.label} choice`;
+  };
 
   const delBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Delete person' } });
   delBtn.addEventListener('click', (e) => {
@@ -430,6 +440,7 @@ function renderPersonCard(person) {
         person.preferences.splice(index, 0, groupId);
       }
       resyncRankSelects();
+      refreshMatchBadge();
       persist();
     };
 

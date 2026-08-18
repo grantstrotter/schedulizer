@@ -602,15 +602,6 @@ function wireEmptyState() {
     e.target.value = '';
   });
 
-  const resumeBtn = document.getElementById('btn-resume-empty');
-  const saved = localStorage.getItem(AUTOSAVE_KEY);
-  if (saved) {
-    resumeBtn.hidden = false;
-    resumeBtn.addEventListener('click', () => {
-      try { loadProjectFromObject(JSON.parse(saved)); } catch (e) { showToast('Autosave was corrupted.'); }
-    });
-  }
-
   ['dragover', 'dragenter'].forEach(evt => dropzone.addEventListener(evt, e => {
     e.preventDefault();
     dropzone.classList.add('drag-over');
@@ -664,3 +655,14 @@ function wireToolbar() {
 
 wireEmptyState();
 wireToolbar();
+
+// Resume automatically if a session was already in progress — landing back on the
+// empty state after a refresh/back-navigation would look like the work was lost.
+const autosaved = localStorage.getItem(AUTOSAVE_KEY);
+if (autosaved) {
+  try {
+    loadProjectFromObject(JSON.parse(autosaved));
+  } catch (e) {
+    showToast('Autosave was corrupted — starting fresh.');
+  }
+}

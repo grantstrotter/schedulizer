@@ -10,9 +10,10 @@ browser window). No server needed.
 
 ## Usage
 
-- **Start**: on first load you'll see an empty state — start a new project, open an
-  existing `.json` project file (click or drag-and-drop it onto the page), or resume
-  your last in-browser session if one was auto-saved.
+- **Start**: if you have an in-progress session auto-saved in this browser, it resumes
+  automatically — no empty state, no extra click. Only with no autosave present do you
+  see the empty state, where you can start a new project or open an existing `.json`
+  project file (click or drag-and-drop it onto the page).
 - **Groups**: created via "+ Add Group" in the toolbar. They start in the Groups drawer;
   drag them onto a day column to schedule them. A group can only be on one day at a time.
   Name is editable inline.

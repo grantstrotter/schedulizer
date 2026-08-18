@@ -281,22 +281,6 @@ function renderPersonCard(person) {
   summary.appendChild(delBtn);
   details.appendChild(summary);
 
-  // Since the whole summary is now the drag handle, Sortable's own pointer handling
-  // intercepts every click on it — the native <details> click-to-toggle became
-  // unreliable (needed a double click). Drive the toggle ourselves off a simple
-  // pointerdown/click distance check instead of depending on that native behavior.
-  let pointerDownPos = null;
-  summary.addEventListener('pointerdown', (e) => {
-    pointerDownPos = { x: e.clientX, y: e.clientY };
-  });
-  summary.addEventListener('click', (e) => {
-    if (e.target.closest('.icon-btn')) return; // let the delete button handle its own click
-    e.preventDefault();
-    const moved = pointerDownPos && Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y) >= 5;
-    if (!moved) details.open = !details.open;
-    pointerDownPos = null;
-  });
-
   const detail = el('div', { class: 'person-detail' });
 
   const nameRow = el('div', { class: 'card-row' });
@@ -504,8 +488,20 @@ function syncModelFromDom() {
 }
 
 function handleDragEnd() {
+  const origin = dragOrigin;
   dragOrigin = null;
   clearDragBlockToast();
+  // Since a person's whole summary (and a group's whole title row) is now the drag
+  // handle, Sortable brackets *every* click with onStart/onEnd, not just real drags —
+  // a plain click's tiny incidental jitter is often enough to cross its own internal
+  // threshold. If the item ended up exactly where it started, nothing actually needs
+  // to change, so skip the render — otherwise it wipes out UI-only state (like a just-
+  // toggled expand/collapse) moments after the click that set it, intermittently
+  // requiring extra clicks depending on how much a given click happened to jitter.
+  const unchanged = origin
+    && origin.item.parentElement === origin.parent
+    && origin.item.nextElementSibling === origin.nextSibling;
+  if (unchanged) return;
   syncModelFromDom();
   render();
 }
@@ -751,6 +747,32 @@ function wireToolbar() {
   document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
 }
 
+// Since a person card's whole summary is the Sortable drag handle, Sortable's floating
+// fallback ghost can end up sitting on top of the real card at pointerup time, so a
+// listener attached to the card itself sometimes never receives that event at all —
+// that's what made the native <details> click-to-toggle (and later, a per-card
+// pointerdown/pointerup pair) fire inconsistently. A single delegated listener on
+// document sidesteps this: no matter which element the event actually lands on, it
+// always bubbles up to document, so we always see it.
+let pendingPersonToggle = null; // { details, x, y }
+
+function wirePersonExpandToggle() {
+  document.addEventListener('pointerdown', (e) => {
+    const summary = e.target.closest('.person-card summary');
+    if (!summary || e.target.closest('.icon-btn')) return;
+    pendingPersonToggle = { details: summary.parentElement, x: e.clientX, y: e.clientY };
+  });
+  document.addEventListener('pointerup', (e) => {
+    if (!pendingPersonToggle) return;
+    const { details, x, y } = pendingPersonToggle;
+    pendingPersonToggle = null;
+    if (Math.hypot(e.clientX - x, e.clientY - y) < 5) details.open = !details.open;
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.person-card summary') && !e.target.closest('.icon-btn')) e.preventDefault();
+  });
+}
+
 function wireKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -780,6 +802,7 @@ wireEmptyState();
 wireToolbar();
 wireKeyboardShortcuts();
 wireHelpModal();
+wirePersonExpandToggle();
 
 // Resume automatically if a session was already in progress — landing back on the
 // empty state after a refresh/back-navigation would look like the work was lost.

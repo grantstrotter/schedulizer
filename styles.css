@@ -269,6 +269,33 @@ button:hover { background: #eef1f5; }
   flex-shrink: 0;
 }
 
+/* Preference-match badge (Distribute tool): blue-to-red gradient from good match to poor
+   match, with red bottoming out at the 5th-or-worse tier. Unranked gets its own darker
+   red — being in a group you didn't rank at all is worse than a bad-but-ranked choice.
+   Colorblind-conscious: the yellow/orange/red run gets progressively darker so
+   brightness alone signals "worse" even if those hues blur together for a red-green
+   colorblind viewer. */
+.match-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-size: 0.75em;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.match-t1 { background: #1d4ed8; }
+.match-t2 { background: #15803d; }
+.match-t3 { background: #ffd500; color: #1a1a1a; }
+.match-t4 { background: #ff7f00; color: #1a1a1a; }
+.match-t5 { background: #b91c1c; }
+.match-unranked { background: #7f1d1d; }
+
 .person-detail {
   margin-top: 6px;
   padding-top: 6px;
@@ -299,6 +326,68 @@ button:hover { background: #eef1f5; }
 
 .sortable-ghost { opacity: 0.35; }
 .sortable-drag { opacity: 0.9; }
+
+/* ---------- Distribute page: side-by-side groups board ---------- */
+
+.groups-board {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  min-height: 40vh;
+}
+
+.groups-board > .board-group-card {
+  width: 300px;
+  margin-bottom: 0;
+}
+
+.group-count {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  padding: 2px 2px 4px;
+}
+.group-count.under-min {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.preferences-list {
+  font-size: 0.9em;
+}
+.preference-line {
+  padding-left: 8px;
+}
+
+.tool-tag {
+  font-weight: 400;
+  font-size: 0.75em;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.tool-switch {
+  margin-top: 10px;
+}
+.tool-switch a {
+  color: var(--accent);
+  font-size: 0.9em;
+}
+
+.tool-switch-link {
+  color: var(--accent);
+  font-size: 0.9em;
+  text-decoration: none;
+  padding: 0 4px;
+}
+.tool-switch-link:hover {
+  text-decoration: underline;
+}
 
 /* ---------- Toast ---------- */
 

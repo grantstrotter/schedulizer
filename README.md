@@ -1,14 +1,24 @@
 # Schedulizer
 
-A small local tool for scheduling church small groups across the 7 nights of the week.
-Pure HTML/CSS/JS, no build step, one CDN dependency ([SortableJS](https://sortablejs.github.io/Sortable/)).
+A small local tool for running church small groups. Pure HTML/CSS/JS, no build step,
+one CDN dependency ([SortableJS](https://sortablejs.github.io/Sortable/)).
+
+It's actually two tools, covering two separate stages of the process:
+
+- **Schedule Groups** (`schedule.html`) — decide which nights your groups run, based on
+  leaders' availability.
+- **Distribute Participants** (`distribute.html`) — once nights are decided, place
+  participants into those groups based on their ranked sign-up preferences.
+
+They're independent projects with their own save files — `schedule.html` doesn't know
+about `distribute.html`'s data or vice versa.
 
 ## Running it
 
-Open `index.html` directly in a browser (double-click it, or drag it into a
-browser window). No server needed.
+Open `index.html` directly in a browser (double-click it, or drag it into a browser
+window) and pick a tool. No server needed.
 
-## Usage
+## Usage — Schedule Groups (`schedule.html`)
 
 - **Start**: if you have an in-progress session auto-saved in this browser, it resumes
   automatically. Only with no autosave present do you see the empty state, where you can
@@ -44,7 +54,7 @@ browser window). No server needed.
   change, purely as a refresh/crash safety net. It is **not** a substitute for exporting
   — clearing browser data or switching browsers loses it.
 
-## Data model
+## Data model — Schedule Groups
 
 ```jsonc
 {
@@ -58,13 +68,13 @@ browser window). No server needed.
     "saturday":  { "groupIds": [], "personIds": [] }
   },
   "groups": [
-    { "id": "...", "name": "Young Adults", "personIds": [] }
+    { "id": "...", "name": "Young Adults", "personIds": [], "minimumRequired": 10 }
   ],
   "leaders": [
-    { "id": "...", "first": "Jane", "last": "Doe", "phone": "555-1234", "email": "jane@example.com", "isLeader": true, "availability": ["sunday", "thursday"] }
+    { "id": "...", "first": "Jane", "last": "Doe", "phone": "555-1234", "email": "jane@example.com", "isLeader": true, "availability": ["sunday", "thursday"], "preferences": [] }
   ],
   "participants": [
-    { "id": "...", "first": "John", "last": "Smith", "phone": "", "email": "", "isLeader": false, "availability": [] }
+    { "id": "...", "first": "John", "last": "Smith", "phone": "", "email": "", "isLeader": false, "availability": [], "preferences": [] }
   ]
 }
 ```
@@ -72,16 +82,54 @@ browser window). No server needed.
 People are stored once (in `leaders`/`participants`) and referenced by `id` elsewhere —
 `days[].personIds`, `days[].groupIds`, and `groups[].personIds` are all just id lists, so
 editing a person's phone/email/availability updates it everywhere they're referenced.
+`minimumRequired` and `preferences` exist for compatibility with the Distribute tool's
+data shape but aren't used by the Schedule tool itself.
+
+## Usage — Distribute Participants (`distribute.html`)
+
+- **Start**: same auto-resume/empty-state behavior as the Schedule tool, but with its
+  own separate autosave — the two tools never share project data.
+- **Groups**: not created manually — import a sign-up CSV (see below) to derive them
+  from the form's own columns, or open a `.json` project that already has them.
+- **Import Sign-Up (CSV)**: expects a Google Forms export with a `Name` column and one
+  column per group question, headers containing the group name in brackets (e.g.
+  `Which groups would you prefer to do? [Wednesday Night - Young Adults]`) with values
+  like `1st Choice`, `2nd Choice`, etc. One group is created per such column, even if
+  nobody ranked it. If the group's name starts with a day name, that's parsed out for
+  availability checking. Optional `Email`, `Phone`, and an availability column
+  (comma-separated day names) are also read if present. Importing again adds new people
+  and merges into an existing person by matching email, rather than duplicating them.
+- **Placing people**: drag a leader or participant from a drawer straight into a group
+  (no day grid here — groups sit side-by-side since their night was already decided in
+  the Schedule tool). Availability is checked against the group's parsed day, same as
+  the Schedule tool.
+- **Preference match**: each placed person shows a colored number badge for their
+  current group's rank in their preferences — blue for a great match, shading through
+  green, yellow, and orange down to red for a poor one (5th choice or worse, all sharing
+  the same red), or a dark red "!" if they're in a group they didn't rank at all.
+- **Place 1st Choices**: puts everyone still unassigned into their 1st-choice group,
+  unconditionally.
+- **Fill Under-Minimum Groups**: works down each under-filled group's list of interested
+  people by rank (2nd choice, then 3rd, ...), pulling from whichever other group
+  currently has the biggest surplus over its own minimum first. Can be re-run any time
+  and considers anyone currently placed with ranked preferences, not just people it
+  placed itself. Anything still under-filled afterward is left for manual adjustment.
+- **Save / Export**: same as the Schedule tool — "Save" downloads the full project
+  JSON, "Export CSV" downloads one row per person with their group, rank, and match
+  emoji.
 
 ## Known POC limitations
 
-- CSV parsing is a plain comma split — a comma inside a name/phone/email field will
-  misalign columns. Fine for typical church-directory exports, not RFC 4180-safe.
-- Dragging a group onto a day checks the availability of that group's **leaders** only
-  (blocked, with a toast, if any leader in the group isn't marked available that night).
-  Non-leader members already in the group are not re-checked when the group moves.
-- No accounts, no server, no multi-user sync — it's a single-file local tool, one
-  project open at a time.
+- CSV parsing in the Schedule tool (and the Distribute tool's `Name`/`Email`/`Phone`/
+  availability columns) is a plain comma split — a comma inside a field will misalign
+  columns. The Distribute tool's sign-up importer handles quoted fields, since real
+  Google Forms exports commonly quote them.
+- Dragging a group onto a day (Schedule tool) checks the availability of that group's
+  **leaders** only (blocked, with a toast, if any leader in the group isn't marked
+  available that night). Non-leader members already in the group are not re-checked
+  when the group moves.
+- No accounts, no server, no multi-user sync — these are single-file local tools, one
+  project open at a time each.
 - Any drag-and-drop action re-renders the whole board, so an expanded person's detail
   panel collapses again after the next drag elsewhere (the underlying data isn't lost,
   just the expand/collapse UI state).

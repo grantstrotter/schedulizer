@@ -1,12 +1,11 @@
-const AUTOSAVE_KEY = 'schedulizer_project_v1';
+const AUTOSAVE_KEY = 'schedulizer_distribute_v1';
+const MATCH_TIER_COUNT = 5; // ranks 5th-or-worse all share the last (worst) tier's color
 
 let project = null;
 let sortables = [];
 
 function blankProject() {
-  const days = {};
-  DAYS.forEach(d => { days[d] = { groupIds: [], personIds: [] }; });
-  return { days, groups: [], leaders: [], participants: [] };
+  return { groups: [], leaders: [], participants: [] };
 }
 
 function getAllPeople() {
@@ -21,37 +20,16 @@ function findGroup(id) {
   return project.groups.find(g => g.id === id);
 }
 
-function findGroupDay(groupId) {
-  for (const d of DAYS) {
-    if (project.days[d].groupIds.includes(groupId)) return d;
-  }
-  return null;
+function getPersonGroup(id) {
+  return project.groups.find(g => g.personIds.includes(id)) || null;
 }
 
 function isPersonPlaced(id) {
-  for (const d of DAYS) {
-    if (project.days[d].personIds.includes(id)) return true;
-  }
   return project.groups.some(g => g.personIds.includes(id));
 }
 
-function isGroupPlaced(id) {
-  return findGroupDay(id) !== null;
-}
-
 function removePersonFromAllPlacements(id) {
-  DAYS.forEach(d => {
-    project.days[d].personIds = project.days[d].personIds.filter(x => x !== id);
-  });
-  project.groups.forEach(g => {
-    g.personIds = g.personIds.filter(x => x !== id);
-  });
-}
-
-function removeGroupFromAllPlacements(id) {
-  DAYS.forEach(d => {
-    project.days[d].groupIds = project.days[d].groupIds.filter(x => x !== id);
-  });
+  project.groups.forEach(g => { g.personIds = g.personIds.filter(x => x !== id); });
 }
 
 function persist() {
@@ -61,9 +39,9 @@ function persist() {
 let dragBlockKey = null;
 
 function showDragBlockToast(key, msg) {
-  if (dragBlockKey === key) return; // already showing this exact block, avoid re-flashing it
+  if (dragBlockKey === key) return;
   dragBlockKey = key;
-  clearTimeout(showToast._t); // a drag-block toast stays until explicitly cleared, not on a timer
+  clearTimeout(showToast._t);
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('visible');
@@ -90,25 +68,19 @@ function newProject(confirmFirst) {
   startApp();
 }
 
-function loadProjectFromObject(obj) {
-  const p = blankProject();
-  if (obj && typeof obj === 'object') {
-    if (obj.days) DAYS.forEach(d => {
-      if (obj.days[d]) {
-        p.days[d].groupIds = obj.days[d].groupIds || [];
-        p.days[d].personIds = obj.days[d].personIds || [];
-      }
-    });
-    if (Array.isArray(obj.groups)) p.groups = obj.groups.map(g => ({
-      id: g.id || uid(), name: g.name || 'Group', personIds: g.personIds || [],
-      minimumRequired: typeof g.minimumRequired === 'number' ? g.minimumRequired : 10
-    }));
-    if (Array.isArray(obj.leaders)) p.leaders = obj.leaders.map(normalizePerson(true));
-    if (Array.isArray(obj.participants)) p.participants = obj.participants.map(normalizePerson(false));
-  }
-  project = p;
-  persist();
-  startApp();
+function parseGroupDay(name) {
+  const lower = (name || '').toLowerCase();
+  return DAYS.find(d => lower.startsWith(DAY_LABELS[d].toLowerCase())) || null;
+}
+
+function normalizeGroup(g) {
+  return {
+    id: g.id || uid(),
+    name: g.name || 'Group',
+    day: g.day || parseGroupDay(g.name),
+    personIds: Array.isArray(g.personIds) ? g.personIds : [],
+    minimumRequired: typeof g.minimumRequired === 'number' ? g.minimumRequired : 10
+  };
 }
 
 function normalizePerson(isLeader) {
@@ -124,51 +96,47 @@ function normalizePerson(isLeader) {
   });
 }
 
+function loadProjectFromObject(obj) {
+  const p = blankProject();
+  if (obj && typeof obj === 'object') {
+    if (Array.isArray(obj.groups)) p.groups = obj.groups.map(normalizeGroup);
+    if (Array.isArray(obj.leaders)) p.leaders = obj.leaders.map(normalizePerson(true));
+    if (Array.isArray(obj.participants)) p.participants = obj.participants.map(normalizePerson(false));
+  }
+  project = p;
+  persist();
+  startApp();
+}
+
 // ---------- Rendering ----------
 
 function render() {
   sortables.forEach(s => s.destroy());
   sortables = [];
 
-  renderDaysRow();
+  renderBoard();
   renderDrawers();
   attachSortables();
   persist();
 }
 
-function renderDaysRow() {
-  const row = document.getElementById('days-row');
-  row.innerHTML = '';
-  DAYS.forEach(day => {
-    const col = el('div', { class: 'day-column', attrs: { 'data-day': day } });
-    col.appendChild(el('h2', { text: DAY_LABELS[day] }));
-    col.appendChild(el('div', { class: 'zone-label', text: 'Groups' }));
-    const groupsList = el('div', { class: 'groups-list', attrs: { 'data-container': 'day-groups', 'data-day': day } });
-    project.days[day].groupIds.forEach(gid => {
-      const g = findGroup(gid);
-      if (g) groupsList.appendChild(renderGroupCard(g));
-    });
-    col.appendChild(groupsList);
+// Badge color tier for a person's current group: 1 (best, coolest color) counts up to
+// MATCH_TIER_COUNT (worst, red) — any rank at or beyond that tier shares the same red,
+// and "unranked" (not on their preference list at all) is its own worst-case tier.
+function matchInfo(person, group) {
+  if (!group) return null;
+  const rank = person.preferences.indexOf(group.id);
+  if (rank === -1) return { label: '!', tier: 'unranked' };
+  return { label: String(rank + 1), tier: `t${Math.min(rank + 1, MATCH_TIER_COUNT)}` };
+}
 
-    col.appendChild(el('div', { class: 'zone-label', text: 'People' }));
-    const peopleList = el('div', { class: 'people-list', attrs: { 'data-container': 'day-people', 'data-day': day } });
-    project.days[day].personIds.forEach(pid => {
-      const p = findPerson(pid);
-      if (p) peopleList.appendChild(renderPersonCard(p));
-    });
-    col.appendChild(peopleList);
-
-    row.appendChild(col);
-  });
+function renderBoard() {
+  const board = document.getElementById('groups-board');
+  board.innerHTML = '';
+  project.groups.forEach(g => board.appendChild(renderGroupCard(g)));
 }
 
 function renderDrawers() {
-  const groupsDrawer = document.getElementById('drawer-groups');
-  groupsDrawer.innerHTML = '';
-  const unplacedGroups = project.groups.filter(g => !isGroupPlaced(g.id));
-  unplacedGroups.forEach(g => groupsDrawer.appendChild(renderGroupCard(g)));
-  document.getElementById('count-groups').textContent = `(${unplacedGroups.length})`;
-
   const leadersDrawer = document.getElementById('drawer-leaders');
   leadersDrawer.innerHTML = '';
   const unplacedLeaders = project.leaders.filter(p => !isPersonPlaced(p.id));
@@ -183,11 +151,9 @@ function renderDrawers() {
 }
 
 function renderGroupCard(group) {
-  const card = el('div', { class: 'group-card', attrs: { 'data-group-id': group.id, 'data-type': 'group' } });
+  const card = el('div', { class: 'group-card board-group-card', attrs: { 'data-group-id': group.id, 'data-type': 'group' } });
 
   const row = el('div', { class: 'card-row' });
-  row.appendChild(el('span', { class: 'drag-handle', text: '⠿' }));
-
   const nameSpan = el('span', { class: 'group-name', text: group.name || '(unnamed group)' });
   row.appendChild(nameSpan);
 
@@ -201,6 +167,7 @@ function renderGroupCard(group) {
     input.select();
     const commit = () => {
       group.name = input.value;
+      group.day = parseGroupDay(group.name);
       nameSpan.textContent = group.name || '(unnamed group)';
       input.replaceWith(nameSpan);
       persist();
@@ -217,12 +184,14 @@ function renderGroupCard(group) {
   delBtn.addEventListener('click', (e) => {
     e.preventDefault();
     if (!confirm(`Delete group "${group.name}"? People inside will return to their drawer.`)) return;
-    removeGroupFromAllPlacements(group.id);
     project.groups = project.groups.filter(g => g.id !== group.id);
     render();
   });
   row.appendChild(delBtn);
   card.appendChild(row);
+
+  const countClass = group.personIds.length < group.minimumRequired ? 'group-count under-min' : 'group-count';
+  card.appendChild(el('div', { class: countClass, text: `${group.personIds.length} / ${group.minimumRequired}${group.day ? ' · ' + DAY_LABELS[group.day] : ''}` }));
 
   const peopleList = el('div', { class: 'people-list', attrs: { 'data-container': 'group-people', 'data-group-id': group.id } });
   group.personIds.forEach(pid => {
@@ -242,10 +211,19 @@ function renderPersonCard(person) {
   summary.appendChild(handle);
   const nameSpan = el('span', { class: 'person-name', text: `${person.first} ${person.last}`.trim() || '(unnamed)' });
   summary.appendChild(nameSpan);
-  let badge = null;
+
+  const currentGroup = getPersonGroup(person.id);
+  let matchBadge = null;
+  if (currentGroup) {
+    const info = matchInfo(person, currentGroup);
+    matchBadge = el('span', { class: `match-badge match-${info.tier}`, text: info.label, attrs: { title: info.tier === 'unranked' ? 'Not on this person’s preference list' : `Rank ${info.label} choice` } });
+    summary.appendChild(matchBadge);
+  }
+
+  let leaderBadge = null;
   if (person.isLeader) {
-    badge = el('span', { class: 'leader-emoji', text: '🎯' });
-    summary.appendChild(badge);
+    leaderBadge = el('span', { class: 'leader-emoji', text: '🎯' });
+    summary.appendChild(leaderBadge);
   }
   const delBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Delete person' } });
   delBtn.addEventListener('click', (e) => {
@@ -302,19 +280,18 @@ function renderPersonCard(person) {
     project.participants = project.participants.filter(p => p.id !== person.id);
     (person.isLeader ? project.leaders : project.participants).push(person);
 
-    if (person.isLeader && !badge) {
-      badge = el('span', { class: 'leader-emoji', text: '🎯' });
-      summary.insertBefore(badge, delBtn);
-    } else if (!person.isLeader && badge) {
-      badge.remove();
-      badge = null;
+    if (person.isLeader && !leaderBadge) {
+      leaderBadge = el('span', { class: 'leader-emoji', text: '🎯' });
+      summary.insertBefore(leaderBadge, delBtn);
+    } else if (!person.isLeader && leaderBadge) {
+      leaderBadge.remove();
+      leaderBadge = null;
     }
 
-    // If sitting unassigned in a drawer, move to the other drawer to match
-    const currentContainer = details.parentElement;
-    if (currentContainer && currentContainer.dataset.container === 'people-drawer') {
+    const container = details.parentElement;
+    if (container && container.dataset.container === 'people-drawer') {
       const targetDrawer = document.getElementById(person.isLeader ? 'drawer-leaders' : 'drawer-participants');
-      if (currentContainer.id !== targetDrawer.id) {
+      if (container.id !== targetDrawer.id) {
         targetDrawer.appendChild(details);
         document.getElementById('count-leaders').textContent = `(${document.querySelectorAll('#drawer-leaders > .person-card').length})`;
         document.getElementById('count-participants').textContent = `(${document.querySelectorAll('#drawer-participants > .person-card').length})`;
@@ -340,109 +317,53 @@ function renderPersonCard(person) {
       persist();
     });
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(DAY_ABBR[d]));
+    label.appendChild(document.createTextNode(d.slice(0, 3)));
     grid.appendChild(label);
   });
   detail.appendChild(grid);
+
+  if (person.preferences.length > 0) {
+    const prefBlock = el('div', { class: 'contact-line preferences-list' });
+    prefBlock.appendChild(el('div', { text: 'Prefers:' }));
+    person.preferences.forEach((gid, i) => {
+      const g = findGroup(gid);
+      prefBlock.appendChild(el('div', { class: 'preference-line', text: `${i + 1}. ${g ? g.name : '(deleted group)'}` }));
+    });
+    detail.appendChild(prefBlock);
+  }
 
   details.appendChild(detail);
   return details;
 }
 
 // ---------- Drag and drop ----------
-//
-// Groups and people share one Sortable group ('board', set up in attachSortables) so
-// either can be dropped anywhere on a day column, not just its own sub-section. Each
-// check function below decides availability first, then — if the hover isn't already
-// over that item's proper zone — relocates the live preview there itself and returns
-// false, which tells Sortable "I've placed it, don't also insert it where you were
-// about to." normalizeBoardAdd applies the same relocation as a post-drop safety net.
-
-function isPeopleZone(container) {
-  return container.dataset.container === 'day-people' || container.dataset.container === 'group-people';
-}
-
-function relocateIfNeeded(node, targetList) {
-  if (targetList && node.parentElement !== targetList) targetList.appendChild(node);
-}
+// Simpler than the scheduling tool: there's no day grid, so every Sortable container
+// here (the two drawers and each group's nested people-list) is already a valid target
+// for any person — the only thing to check is availability against the group's day
+// (if the group's name implied one), so no redirect/relocation logic is needed.
 
 function checkPersonMoveAllowed(evt) {
-  // Never preview a person against the raw Groups row itself (a day's groups-list or
-  // the Groups drawer) — only a specific group's own nested People list is a valid
-  // target, so aiming for that nested drop zone doesn't shuffle the group cards.
-  if (evt.to.dataset.container === 'day-groups' || evt.to.id === 'drawer-groups') {
-    return false;
-  }
-
   const personId = evt.dragged.dataset.personId;
   const person = findPerson(personId);
+  const groupCard = evt.to.closest('.group-card');
+  const group = groupCard ? findGroup(groupCard.dataset.groupId) : null;
 
-  const dayColumn = evt.to.closest('.day-column');
-  const targetDay = dayColumn ? dayColumn.dataset.day : null;
-
-  // drawer drops, or drops into an unplaced group, carry no day and are always allowed
-  if (!person || !targetDay) {
+  if (!person || !group || !group.day) {
     clearDragBlockToast();
     return true;
   }
 
-  const blocked = person.availability.length > 0 && !person.availability.includes(targetDay);
+  const blocked = person.availability.length > 0 && !person.availability.includes(group.day);
   if (blocked) {
-    showDragBlockToast(`person:${personId}:${targetDay}`, `${person.first} ${person.last} is not marked available on ${DAY_LABELS[targetDay]}.`);
-    return false; // blocked: leave the card wherever it currently is, don't relocate it
-  }
-
-  clearDragBlockToast();
-  return true; // evt.to is already a valid people zone at this point (day-people or group-people)
-}
-
-function checkGroupMoveAllowed(evt) {
-  const groupId = evt.dragged.dataset.groupId;
-  const group = findGroup(groupId);
-
-  const dayColumn = evt.to.closest('.day-column');
-  const targetDay = dayColumn ? dayColumn.dataset.day : null;
-
-  // drops back into the groups drawer carry no day and are always allowed
-  if (!group || !targetDay) {
-    clearDragBlockToast();
-    // A group must never nest inside another group's own People list — even when that
-    // host group is unplaced (no day), so no availability check applies here at all.
-    if (evt.to.dataset.container === 'group-people') {
-      relocateIfNeeded(evt.dragged, document.getElementById('drawer-groups'));
-      return false;
-    }
-    return true;
-  }
-
-  const unavailableLeaders = group.personIds
-    .map(findPerson)
-    .filter(p => p && p.isLeader && p.availability.length > 0 && !p.availability.includes(targetDay));
-
-  if (unavailableLeaders.length > 0) {
-    const names = unavailableLeaders.map(p => `${p.first} ${p.last}`.trim()).join(', ');
-    showDragBlockToast(`group:${groupId}:${targetDay}`, `${names} ${unavailableLeaders.length === 1 ? 'is' : 'are'} not marked available on ${DAY_LABELS[targetDay]}.`);
-    return false; // blocked: leave the card wherever it currently is, don't relocate it
-  }
-
-  clearDragBlockToast();
-
-  const groupsList = dayColumn.querySelector(':scope > .groups-list');
-  if (evt.to !== groupsList) {
-    relocateIfNeeded(evt.dragged, groupsList);
+    showDragBlockToast(`person:${personId}:${group.id}`, `${person.first} ${person.last} is not marked available on ${DAY_LABELS[group.day]}.`);
     return false;
   }
 
+  clearDragBlockToast();
   return true;
 }
 
 function syncModelFromDom() {
-  DAYS.forEach(day => {
-    const col = document.querySelector(`.day-column[data-day="${day}"]`);
-    project.days[day].groupIds = Array.from(col.querySelectorAll(':scope > .groups-list > .group-card')).map(n => n.dataset.groupId);
-    project.days[day].personIds = Array.from(col.querySelectorAll(':scope > .people-list > .person-card')).map(n => n.dataset.personId);
-  });
-
   project.groups.forEach(g => {
     const listEl = document.querySelector(`.group-card[data-group-id="${g.id}"] > .people-list`);
     if (listEl) g.personIds = Array.from(listEl.querySelectorAll(':scope > .person-card')).map(n => n.dataset.personId);
@@ -452,39 +373,14 @@ function syncModelFromDom() {
   const participantIds = Array.from(document.querySelectorAll('#drawer-participants > .person-card')).map(n => n.dataset.personId);
 
   const allPeople = getAllPeople();
-  leaderIds.forEach(id => {
-    const p = allPeople.find(x => x.id === id);
-    if (p) p.isLeader = true;
-  });
-  participantIds.forEach(id => {
-    const p = allPeople.find(x => x.id === id);
-    if (p) p.isLeader = false;
-  });
+  leaderIds.forEach(id => { const p = allPeople.find(x => x.id === id); if (p) p.isLeader = true; });
+  participantIds.forEach(id => { const p = allPeople.find(x => x.id === id); if (p) p.isLeader = false; });
 
   project.leaders = allPeople.filter(p => p.isLeader);
   project.participants = allPeople.filter(p => !p.isLeader);
 }
 
-function handleDragEnd() {
-  const origin = dragOrigin;
-  dragOrigin = null;
-  clearDragBlockToast();
-  // Since a person's whole summary (and a group's whole title row) is now the drag
-  // handle, Sortable brackets *every* click with onStart/onEnd, not just real drags —
-  // a plain click's tiny incidental jitter is often enough to cross its own internal
-  // threshold. If the item ended up exactly where it started, nothing actually needs
-  // to change, so skip the render — otherwise it wipes out UI-only state (like a just-
-  // toggled expand/collapse) moments after the click that set it, intermittently
-  // requiring extra clicks depending on how much a given click happened to jitter.
-  const unchanged = origin
-    && origin.item.parentElement === origin.parent
-    && origin.item.nextElementSibling === origin.nextSibling;
-  if (unchanged) return;
-  syncModelFromDom();
-  render();
-}
-
-let dragOrigin = null; // { item, parent, nextSibling } captured at drag start, for Escape-to-cancel
+let dragOrigin = null;
 
 function recordDragOrigin(evt) {
   dragOrigin = { item: evt.item, parent: evt.from, nextSibling: evt.item.nextElementSibling };
@@ -500,90 +396,233 @@ function cancelActiveDrag() {
   }
   dragOrigin = null;
   clearDragBlockToast();
-  // Force Sortable to end its in-progress drag now that we've restored the DOM ourselves
   document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
   document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse' }));
 }
 
-function normalizeBoardAdd(evt) {
-  const item = evt.item;
-  const dayColumn = evt.to.closest('.day-column');
-
-  if (item.dataset.type === 'group') {
-    relocateIfNeeded(item, dayColumn ? dayColumn.querySelector(':scope > .groups-list') : document.getElementById('drawer-groups'));
-    return;
-  }
-
-  // person: only relocate if it landed within a day but outside any valid People zone
-  if (dayColumn && !isPeopleZone(evt.to)) {
-    relocateIfNeeded(item, dayColumn.querySelector(':scope > .people-list'));
-  }
-}
-
-function checkBoardMoveAllowed(evt) {
-  return evt.dragged.dataset.type === 'group' ? checkGroupMoveAllowed(evt) : checkPersonMoveAllowed(evt);
+function handleDragEnd() {
+  const origin = dragOrigin;
+  dragOrigin = null;
+  clearDragBlockToast();
+  const unchanged = origin
+    && origin.item.parentElement === origin.parent
+    && origin.item.nextElementSibling === origin.nextSibling;
+  if (unchanged) return;
+  syncModelFromDom();
+  render();
 }
 
 function attachSortables() {
-  // Groups and people share one Sortable group so a dragged group is accepted anywhere
-  // on a day column (not just its Groups sub-section) — normalizeBoardAdd relocates it
-  // into the right list afterward, and checkBoardMoveAllowed still enforces availability.
   const containers = [
-    document.getElementById('drawer-groups'),
     document.getElementById('drawer-leaders'),
     document.getElementById('drawer-participants'),
-    ...Array.from(document.querySelectorAll('.groups-list')),
-    ...Array.from(document.querySelectorAll('.people-list'))
+    ...Array.from(document.querySelectorAll('.board-group-card > .people-list'))
   ];
   containers.forEach(container => {
-    const isGroupsContainer = container.id === 'drawer-groups' || container.classList.contains('groups-list');
     sortables.push(Sortable.create(container, {
-      group: 'board',
-      // Both card types are grabbable by their whole title row now, not just the tiny
-      // icon — the icon/edit/delete buttons and the (rare, mid-rename) name input are
-      // excluded via filter so they keep behaving as plain clicks.
-      handle: isGroupsContainer ? '.card-row' : 'summary',
+      group: 'distribute-board',
+      handle: 'summary',
       filter: '.icon-btn, input',
       preventOnFilter: false,
       animation: 150,
       forceFallback: true,
       onStart: recordDragOrigin,
-      onMove: checkBoardMoveAllowed,
-      onAdd: normalizeBoardAdd,
+      onMove: checkPersonMoveAllowed,
       onEnd: handleDragEnd
     }));
   });
 }
 
-// ---------- CSV / JSON import-export ----------
+// ---------- Auto-assign by preference (two separate, manually-triggered steps) ----------
+
+function assignFirstChoices() {
+  const unplaced = getAllPeople().filter(p => !isPersonPlaced(p.id) && p.preferences.length > 0);
+  if (unplaced.length === 0) {
+    showToast('Nobody unassigned has ranked preferences to place.');
+    return;
+  }
+  unplaced.forEach(p => {
+    const group = findGroup(p.preferences[0]);
+    if (group) group.personIds.push(p.id);
+  });
+  render();
+  showToast(`Placed ${unplaced.length} people in their 1st choice.`);
+}
+
+function fillUnderMinimumGroups() {
+  const pool = () => getAllPeople().filter(p => p.preferences.length > 0 && isPersonPlaced(p.id));
+  const maxRank = Math.max(0, ...pool().map(p => p.preferences.length));
+  if (maxRank === 0) {
+    showToast('No placed people have ranked preferences to pull from.');
+    return;
+  }
+
+  // Pull candidates into under-filled groups rank-by-rank (2nd choice, then 3rd, ...),
+  // preferring to pull from whichever group currently has the biggest surplus over its
+  // own minimum. Works on anyone currently placed with preference data, however they
+  // got there (auto-placed or manually dragged).
+  let moved = 0;
+  for (let rank = 2; rank <= maxRank; rank++) {
+    const underfilled = project.groups
+      .filter(g => g.personIds.length < g.minimumRequired)
+      .sort((a, b) => (b.minimumRequired - b.personIds.length) - (a.minimumRequired - a.personIds.length));
+
+    underfilled.forEach(group => {
+      while (group.personIds.length < group.minimumRequired) {
+        const candidates = pool()
+          .filter(p => {
+            const currentGroup = getPersonGroup(p.id);
+            return currentGroup && currentGroup.id !== group.id && p.preferences[rank - 1] === group.id;
+          })
+          .sort((a, b) => {
+            const surplusA = getPersonGroup(a.id).personIds.length - getPersonGroup(a.id).minimumRequired;
+            const surplusB = getPersonGroup(b.id).personIds.length - getPersonGroup(b.id).minimumRequired;
+            return surplusB - surplusA;
+          });
+        if (candidates.length === 0) break;
+        const person = candidates[0];
+        const fromGroup = getPersonGroup(person.id);
+        fromGroup.personIds = fromGroup.personIds.filter(x => x !== person.id);
+        group.personIds.push(person.id);
+        moved++;
+      }
+    });
+  }
+
+  const stillUnder = project.groups.filter(g => g.personIds.length < g.minimumRequired);
+  render();
+  showToast(moved === 0
+    ? 'No moves were possible — no lower-ranked candidates available in surplus groups.'
+    : `Moved ${moved} people to fill under-minimum groups.${stillUnder.length ? ' ' + stillUnder.length + ' group' + (stillUnder.length === 1 ? '' : 's') + ' still under minimum.' : ' All groups meet their minimum.'}`);
+}
+
+// ---------- Sign-up CSV import ----------
+
+function parseCSVRow(line) {
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; } else inQuotes = false;
+      } else {
+        cur += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ',') {
+      result.push(cur);
+      cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result.map(s => s.trim());
+}
+
+function findOrCreateGroupByName(name) {
+  let group = project.groups.find(g => g.name.toLowerCase() === name.toLowerCase());
+  if (!group) {
+    group = { id: uid(), name, day: parseGroupDay(name), personIds: [], minimumRequired: 10 };
+    project.groups.push(group);
+  }
+  return group;
+}
+
+function importSignupCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const lines = reader.result.split(/\r?\n/).filter(l => l.trim().length > 0);
+    if (lines.length < 2) { showToast('That file has no data rows.'); return; }
+    const headers = parseCSVRow(lines[0]);
+
+    const nameIdx = headers.findIndex(h => h.toLowerCase() === 'name' || h.toLowerCase() === 'full name');
+    const emailIdx = headers.findIndex(h => h.toLowerCase().includes('email'));
+    const phoneIdx = headers.findIndex(h => h.toLowerCase().includes('phone'));
+    const availIdx = headers.findIndex(h => h.toLowerCase().includes('available') || h.toLowerCase().includes('availability'));
+    const leaderIdx = headers.findIndex(h => h.toLowerCase().includes('leader'));
+
+    const groupCols = []; // { index, group }
+    headers.forEach((h, i) => {
+      const m = h.match(/\[([^\]]+)\]/);
+      if (m) groupCols.push({ index: i, group: findOrCreateGroupByName(m[1].trim()) });
+    });
+
+    if (nameIdx === -1) { showToast('Could not find a "Name" column in that CSV.'); return; }
+    if (groupCols.length === 0) { showToast('Could not find any group-preference columns (expected headers containing "[Group Name]").'); return; }
+
+    let imported = 0;
+    let merged = 0;
+
+    lines.slice(1).forEach(line => {
+      const cells = parseCSVRow(line);
+      const fullName = cells[nameIdx] || '';
+      if (!fullName) return;
+      const spaceIdx = fullName.indexOf(' ');
+      const first = spaceIdx === -1 ? fullName : fullName.slice(0, spaceIdx);
+      const last = spaceIdx === -1 ? '' : fullName.slice(spaceIdx + 1).trim();
+      const email = emailIdx !== -1 ? (cells[emailIdx] || '') : '';
+      const phone = phoneIdx !== -1 ? (cells[phoneIdx] || '') : '';
+      const availability = availIdx !== -1 ? parseAvailability(cells[availIdx], ',') : [];
+      const isLeader = leaderIdx !== -1 && ['true', '1', 'yes', 'y'].includes((cells[leaderIdx] || '').toLowerCase());
+
+      const ranked = groupCols
+        .map(({ index, group }) => {
+          const raw = cells[index] || '';
+          const m = raw.match(/^(\d+)/);
+          return m ? { group, rank: parseInt(m[1], 10) } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.rank - b.rank);
+      const preferences = ranked.map(r => r.group.id);
+
+      const existing = email ? getAllPeople().find(p => p.email && p.email.toLowerCase() === email.toLowerCase()) : null;
+      if (existing) {
+        existing.first = first || existing.first;
+        existing.last = last || existing.last;
+        existing.phone = phone || existing.phone;
+        existing.availability = availability.length > 0 ? availability : existing.availability;
+        existing.preferences = preferences;
+        merged++;
+      } else {
+        const person = { id: uid(), first, last, phone, email, isLeader, availability, preferences };
+        (isLeader ? project.leaders : project.participants).push(person);
+        imported++;
+      }
+    });
+
+    render();
+    showToast(`Imported ${imported} new, merged ${merged} existing. ${groupCols.length} groups on the board.`);
+  };
+  reader.readAsText(file);
+}
+
+// ---------- JSON export / import ----------
 
 function exportJSON() {
   const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
-  downloadBlob(blob, 'schedulizer-project.json');
+  downloadBlob(blob, 'schedulizer-distribute-project.json');
 }
 
 function exportCSV() {
-  const rows = [['day', 'group', 'first', 'last', 'phone', 'email', 'isLeader']];
-  DAYS.forEach(day => {
-    project.days[day].groupIds.forEach(gid => {
-      const g = findGroup(gid);
-      if (!g) return;
-      g.personIds.forEach(pid => {
-        const p = findPerson(pid);
-        if (p) rows.push([DAY_LABELS[day], g.name, p.first, p.last, p.phone, p.email, p.isLeader]);
-      });
-    });
-    project.days[day].personIds.forEach(pid => {
+  const rows = [['group', 'first', 'last', 'phone', 'email', 'isLeader', 'rank', 'match']];
+  project.groups.forEach(g => {
+    g.personIds.forEach(pid => {
       const p = findPerson(pid);
-      if (p) rows.push([DAY_LABELS[day], '', p.first, p.last, p.phone, p.email, p.isLeader]);
+      if (!p) return;
+      const rank = p.preferences.indexOf(g.id);
+      rows.push([g.name, p.first, p.last, p.phone, p.email, p.isLeader, rank === -1 ? '' : rank + 1, matchInfo(p, g).label]);
     });
   });
   getAllPeople().filter(p => !isPersonPlaced(p.id)).forEach(p => {
-    rows.push(['(unassigned)', '', p.first, p.last, p.phone, p.email, p.isLeader]);
+    rows.push(['(unassigned)', p.first, p.last, p.phone, p.email, p.isLeader, '', '']);
   });
   const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
-  downloadBlob(blob, 'schedulizer-export.csv');
+  downloadBlob(blob, 'schedulizer-distribute-export.csv');
 }
 
 function importJSONFile(file) {
@@ -595,24 +634,6 @@ function importJSONFile(file) {
     } catch (e) {
       showToast('Could not parse that JSON file.');
     }
-  };
-  reader.readAsText(file);
-}
-
-function importCSVFile(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    const lines = reader.result.split(/\r?\n/).filter(l => l.trim().length > 0);
-    if (lines.length < 2) return;
-    lines.slice(1).forEach(line => {
-      const [first, last, phone, email, isLeaderRaw, availabilityRaw] = parseCSVLine(line);
-      const isLeader = ['true', '1', 'yes', 'y'].includes((isLeaderRaw || '').toLowerCase());
-      const availability = parseAvailability(availabilityRaw);
-      const person = { id: uid(), first: first || '', last: last || '', phone: phone || '', email: email || '', isLeader, availability, preferences: [] };
-      if (isLeader) project.leaders.push(person);
-      else project.participants.push(person);
-    });
-    render();
   };
   reader.readAsText(file);
 }
@@ -660,14 +681,6 @@ function wireToolbar() {
     e.target.value = '';
   });
 
-  document.getElementById('btn-add-group').addEventListener('click', (e) => {
-    e.preventDefault();
-    const id = uid();
-    project.groups.push({ id, name: 'New Group', personIds: [], minimumRequired: 10 });
-    render();
-    document.querySelector(`.group-card[data-group-id="${id}"] .group-edit-btn`)?.click();
-  });
-
   document.getElementById('btn-add-leader').addEventListener('click', (e) => {
     e.preventDefault();
     const id = uid();
@@ -683,24 +696,19 @@ function wireToolbar() {
     focusNewPerson(id);
   });
 
-  document.getElementById('btn-import-people').addEventListener('click', () => document.getElementById('file-import-csv').click());
-  document.getElementById('file-import-csv').addEventListener('change', e => {
-    if (e.target.files[0]) importCSVFile(e.target.files[0]);
+  document.getElementById('btn-import-signup').addEventListener('click', () => document.getElementById('file-import-signup').click());
+  document.getElementById('file-import-signup').addEventListener('change', e => {
+    if (e.target.files[0]) importSignupCSVFile(e.target.files[0]);
     e.target.value = '';
   });
 
+  document.getElementById('btn-assign-first-choice').addEventListener('click', assignFirstChoices);
+  document.getElementById('btn-fill-under-min').addEventListener('click', fillUnderMinimumGroups);
   document.getElementById('btn-export-json').addEventListener('click', exportJSON);
   document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
 }
 
-// Since a person card's whole summary is the Sortable drag handle, Sortable's floating
-// fallback ghost can end up sitting on top of the real card at pointerup time, so a
-// listener attached to the card itself sometimes never receives that event at all —
-// that's what made the native <details> click-to-toggle (and later, a per-card
-// pointerdown/pointerup pair) fire inconsistently. A single delegated listener on
-// document sidesteps this: no matter which element the event actually lands on, it
-// always bubbles up to document, so we always see it.
-let pendingPersonToggle = null; // { details, x, y }
+let pendingPersonToggle = null;
 
 function wirePersonExpandToggle() {
   document.addEventListener('pointerdown', (e) => {
@@ -750,8 +758,6 @@ wireKeyboardShortcuts();
 wireHelpModal();
 wirePersonExpandToggle();
 
-// Resume automatically if a session was already in progress — landing back on the
-// empty state after a refresh/back-navigation would look like the work was lost.
 const autosaved = localStorage.getItem(AUTOSAVE_KEY);
 if (autosaved) {
   try {

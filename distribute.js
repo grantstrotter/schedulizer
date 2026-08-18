@@ -72,7 +72,7 @@ function newProject(confirmFirst) {
 
 function parseGroupDay(name) {
   const lower = (name || '').toLowerCase();
-  return DAYS.find(d => lower.startsWith(DAY_LABELS[d].toLowerCase())) || null;
+  return DAYS.find(d => new RegExp(`\\b${DAY_LABELS[d].toLowerCase()}\\b`).test(lower)) || null;
 }
 
 function normalizeGroup(g) {
@@ -146,10 +146,22 @@ function matchInfo(person, group) {
   return { label: String(rank + 1), tier: `t${Math.min(rank + 1, MATCH_TIER_COUNT)}` };
 }
 
+// Display order only — doesn't touch project.groups itself. Sorted by day of week
+// (Sun-Sat, matching the Schedule tool), with undated groups pushed to the end, then
+// alphabetically within the same day.
+function sortedGroups() {
+  return [...project.groups].sort((a, b) => {
+    const dayA = a.day ? DAYS.indexOf(a.day) : DAYS.length;
+    const dayB = b.day ? DAYS.indexOf(b.day) : DAYS.length;
+    if (dayA !== dayB) return dayA - dayB;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 function renderBoard() {
   const board = document.getElementById('groups-board');
   board.innerHTML = '';
-  project.groups.forEach(g => board.appendChild(renderGroupCard(g)));
+  sortedGroups().forEach(g => board.appendChild(renderGroupCard(g)));
 }
 
 function renderDrawers() {
@@ -693,7 +705,7 @@ function exportJSON() {
 
 function exportCSV() {
   const rows = [['group', 'first', 'last', 'phone', 'email', 'isLeader', 'rank', 'match']];
-  project.groups.forEach(g => {
+  sortedGroups().forEach(g => {
     g.personIds.forEach(pid => {
       const p = findPerson(pid);
       if (!p) return;

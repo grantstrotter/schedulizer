@@ -189,7 +189,7 @@ button:hover { background: #eef1f5; }
   width: 220px; /* fixed, so expanding it (wide inputs/checkboxes) doesn't balloon the card */
 }
 
-.group-card { background: #fff9ec; border-color: #e8d9ad; }
+.group-card { background: #eef4fc; border-color: #bcd6f5; }
 
 .card-row {
   display: flex;
@@ -231,7 +231,7 @@ button:hover { background: #eef1f5; }
 .group-card .people-list {
   margin-top: 6px;
   padding: 4px;
-  border: 1px dashed #e0d3a0;
+  border: 1px dashed #9dbfe8;
   border-radius: 4px;
   min-height: 28px;
 }
@@ -321,4 +321,77 @@ button:hover { background: #eef1f5; }
 #toast.visible {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+/* ---------- Help modal ---------- */
+
+.help-link {
+  margin-top: 16px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.modal-overlay[hidden] { display: none; }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  border-radius: 10px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { margin: 0; font-size: 1.15em; }
+.modal-close { font-size: 1.1em; }
+
+.modal-body {
+  padding: 4px 20px 20px;
+  overflow-y: auto;
+}
+.modal-body h3 {
+  margin: 16px 0 4px;
+  font-size: 1em;
+}
+.modal-body h3:first-child { margin-top: 16px; }
+.modal-body p {
+  margin: 0 0 4px;
+  line-height: 1.5;
+  color: #333;
+}
+.modal-body code {
+  background: var(--bg);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 0.9em;
+}
+.modal-body kbd {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 0.85em;
+  font-family: inherit;
 }

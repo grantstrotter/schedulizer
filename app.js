@@ -718,9 +718,23 @@ function wireKeyboardShortcuts() {
   });
 }
 
+function wireHelpModal() {
+  const modal = document.getElementById('help-modal');
+  const open = () => { modal.hidden = false; };
+  const close = () => { modal.hidden = true; };
+  document.getElementById('btn-help').addEventListener('click', open);
+  document.getElementById('btn-help-empty').addEventListener('click', open);
+  document.getElementById('btn-help-close').addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) close();
+  });
+}
+
 wireEmptyState();
 wireToolbar();
 wireKeyboardShortcuts();
+wireHelpModal();
 
 // Resume automatically if a session was already in progress — landing back on the
 // empty state after a refresh/back-navigation would look like the work was lost.

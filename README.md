@@ -57,7 +57,7 @@ files/folders that start with `_`.)
   is treated as unrestricted (so freshly-imported people aren't unassignable everywhere).
 - **Leader ⇄ Participant**: drag a person card between the Leaders and Participants
   drawers to convert them. Only works while they're sitting in a drawer (unassigned).
-- **Export**: "Export JSON" downloads the full project file (re-open it later the same
+- **Save / Export**: "Save" downloads the full project file (re-open it later the same
   way). "Export CSV" downloads a flattened, spreadsheet-friendly view: one row per
   assigned person (day, group, name, contact, isLeader), plus a trailing block of
   anyone still unassigned.

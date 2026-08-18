@@ -95,7 +95,8 @@ function normalizePerson(isLeader) {
     isLeader: person.isLeader !== undefined ? !!person.isLeader : isLeader,
     availability: Array.isArray(person.availability) ? person.availability.filter(d => DAYS.includes(d)) : [],
     preferences: Array.isArray(person.preferences) ? person.preferences.filter(id => typeof id === 'string') : [],
-    communityBuilder: !!person.communityBuilder // manual-only flag, never set by CSV import
+    communityBuilder: !!person.communityBuilder, // manual-only flag, never set by CSV import
+    comments: typeof person.comments === 'string' ? person.comments : ''
   });
 }
 
@@ -417,6 +418,13 @@ function renderPersonCard(person) {
     grid.appendChild(label);
   });
   detail.appendChild(grid);
+
+  const commentsLabel = el('div', { class: 'contact-line', text: 'Comments:' });
+  detail.appendChild(commentsLabel);
+  const commentsInput = el('textarea', { class: 'inline-input comments-field', attrs: { rows: '2', placeholder: 'Any comments, questions, or unique scheduling concerns' } });
+  commentsInput.value = person.comments;
+  commentsInput.addEventListener('input', () => { person.comments = commentsInput.value; persist(); });
+  detail.appendChild(commentsInput);
 
   if (project.groups.length > 0) {
     const prefBlock = el('div', { class: 'contact-line preferences-editor' });
@@ -752,6 +760,10 @@ function importSignupCSVFile(file) {
     const phoneIdx = headers.findIndex(h => h.toLowerCase().includes('phone'));
     const availIdx = headers.findIndex(h => h.toLowerCase().includes('available') || h.toLowerCase().includes('availability'));
     const leaderIdx = headers.findIndex(h => h.toLowerCase().includes('leader'));
+    const commentsIdx = headers.findIndex(h => {
+      const lower = h.toLowerCase();
+      return lower.includes('comment') || lower.includes('question') || lower.includes('concern');
+    });
 
     const groupCols = []; // { index, group }
     headers.forEach((h, i) => {
@@ -776,6 +788,7 @@ function importSignupCSVFile(file) {
       const phone = phoneIdx !== -1 ? (cells[phoneIdx] || '') : '';
       const availability = availIdx !== -1 ? parseAvailability(cells[availIdx], ',') : [];
       const isLeader = leaderIdx !== -1 && ['true', '1', 'yes', 'y'].includes((cells[leaderIdx] || '').toLowerCase());
+      const comments = commentsIdx !== -1 ? (cells[commentsIdx] || '') : '';
 
       const ranked = groupCols
         .map(({ index, group }) => {
@@ -794,9 +807,10 @@ function importSignupCSVFile(file) {
         existing.phone = phone || existing.phone;
         existing.availability = availability.length > 0 ? availability : existing.availability;
         existing.preferences = preferences;
+        existing.comments = comments || existing.comments;
         merged++;
       } else {
-        const person = { id: uid(), first, last, phone, email, isLeader, availability, preferences, communityBuilder: false };
+        const person = { id: uid(), first, last, phone, email, isLeader, availability, preferences, communityBuilder: false, comments };
         (isLeader ? project.leaders : project.participants).push(person);
         imported++;
       }
@@ -816,17 +830,16 @@ function exportJSON() {
 }
 
 function exportCSV() {
-  const rows = [['group', 'first', 'last', 'phone', 'email', 'isLeader', 'rank', 'match']];
+  const rows = [['group', 'first', 'last', 'phone', 'email', 'isLeader']];
   sortedGroups().forEach(g => {
     g.personIds.forEach(pid => {
       const p = findPerson(pid);
       if (!p) return;
-      const rank = p.preferences.indexOf(g.id);
-      rows.push([g.name, p.first, p.last, p.phone, p.email, p.isLeader, rank === -1 ? '' : rank + 1, matchInfo(p, g).label]);
+      rows.push([g.name, p.first, p.last, p.phone, p.email, p.isLeader]);
     });
   });
   getAllPeople().filter(p => !isPersonPlaced(p.id)).forEach(p => {
-    rows.push(['(unassigned)', p.first, p.last, p.phone, p.email, p.isLeader, '', '']);
+    rows.push(['(unassigned)', p.first, p.last, p.phone, p.email, p.isLeader]);
   });
   const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -892,14 +905,14 @@ function wireToolbar() {
   document.getElementById('btn-add-leader').addEventListener('click', (e) => {
     e.preventDefault();
     const id = uid();
-    project.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [], communityBuilder: false });
+    project.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [], communityBuilder: false, comments: '' });
     render();
     focusNewPerson(id);
   });
   document.getElementById('btn-add-participant').addEventListener('click', (e) => {
     e.preventDefault();
     const id = uid();
-    project.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [], communityBuilder: false });
+    project.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [], communityBuilder: false, comments: '' });
     render();
     focusNewPerson(id);
   });

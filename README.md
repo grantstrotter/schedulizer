@@ -100,9 +100,13 @@ data shape but aren't used by the Schedule tool itself.
   `Which groups would you prefer to do? [Wednesday Night - Young Adults]`). One group is
   created per such column, even if nobody ranked it. If a day name appears anywhere in
   the group's name, that's parsed out for availability checking. Optional `Email`,
-  `Phone`, and an availability column (comma-separated day names) are also read if
-  present. Importing again adds new people and merges into an existing person by
-  matching email, rather than duplicating them.
+  `Phone`, an availability column (comma-separated day names), and a free-text column
+  whose header contains "comment", "question", or "concern" (e.g. "Any comments,
+  questions, or unique scheduling concerns?") are also read if present — the last
+  becomes their editable Comments field. CSV parsing here is quote-aware (unlike the
+  Schedule tool's plain comma split), so commas inside a quoted response are handled
+  correctly. Importing again adds new people and merges into an existing person by
+  matching email (refreshing their comments too), rather than duplicating them.
 - **Placing people**: drag a leader or participant from a drawer straight into a group
   (no day grid here — groups sit side-by-side since their night was already decided in
   the Schedule tool, sorted by that day then alphabetically). Availability is checked
@@ -120,6 +124,9 @@ data shape but aren't used by the Schedule tool itself.
   right below Leader) for people especially effective at building community. Always
   starts unchecked and is never set by the sign-up import — only by hand. Shows a ⭐
   badge next to their name when checked.
+- **Comments**: an expanded person card has an editable Comments box below their
+  availability, imported from the sign-up form's free-text question (if present) and
+  editable by hand afterward.
 - **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
   everyone still unassigned into their 1st-choice group, unconditionally. Each
   **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an
@@ -140,8 +147,8 @@ data shape but aren't used by the Schedule tool itself.
   stop button — the group's own button (now reading "Stop Highlighting"), or `Esc`,
   also turns it off.
 - **Save / Export**: same as the Schedule tool — "Save" downloads the full project
-  JSON, "Export CSV" downloads one row per person with their group, rank, and match
-  emoji.
+  JSON, "Export CSV" downloads one row per person with their group, name, phone,
+  email, and leader flag.
 
 ## Known POC limitations
 

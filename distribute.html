@@ -89,9 +89,12 @@
         if nobody ranked it — and the night is parsed out of the group's name when a day name
         appears anywhere in it, purely for availability checking. It also expects a
         <code>Name</code> column (split on the first space into first/last), and optionally
-        <code>Email</code>, <code>Phone</code>, and an availability column (comma-separated
-        day names). Importing again adds new people; a row whose email matches an existing
-        leader merges into that leader instead of creating a duplicate.</p>
+        <code>Email</code>, <code>Phone</code>, an availability column (comma-separated day
+        names), and a free-text column whose header contains "comment", "question", or
+        "concern" — e.g. "Any comments, questions, or unique scheduling concerns?" — which
+        becomes their editable <strong>Comments</strong> field. Importing again adds new
+        people; a row whose email matches an existing leader merges into that leader instead
+        of creating a duplicate, refreshing their comments too.</p>
 
       <h3>Groups</h3>
       <p>Groups sit side-by-side on the board — there's no day grid here, since a group's
@@ -150,9 +153,14 @@
         starts unchecked and is never set by the sign-up import, only by hand. When checked,
         their name shows a ⭐ badge next to it.</p>
 
+      <h3>Comments</h3>
+      <p>An expanded person card has an editable <strong>Comments</strong> box, below their
+        availability — imported from the sign-up form's free-text question (if present) and
+        editable by hand afterward.</p>
+
       <h3>Exporting</h3>
       <p><strong>Save</strong> downloads the full project as JSON. <strong>Export CSV</strong>
-        downloads one row per person with their group, preference rank, and match emoji.</p>
+        downloads one row per person with their group, name, phone, email, and leader flag.</p>
     </div>
   </div>
 </div>

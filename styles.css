@@ -222,6 +222,12 @@ button:hover { background: #eef1f5; }
 }
 .group-name { font-weight: 600; flex: 1; min-width: 0; }
 
+.comments-field {
+  font-size: 0.85em;
+  resize: vertical;
+  margin-bottom: 4px;
+}
+
 .person-field {
   font-size: 0.85em;
   flex: 1;

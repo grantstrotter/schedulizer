@@ -23,24 +23,26 @@
 </div>
 
 <div id="app" hidden>
-  <header class="toolbar">
-    <strong class="app-title">Schedulizer <span class="tool-tag">Distribute</span></strong>
-    <button id="btn-new">New Project</button>
-    <button id="btn-open">Open&hellip;</button>
-    <button id="btn-import-signup">Import Sign-Up (CSV)&hellip;</button>
-    <button id="btn-help">Help</button>
-    <span class="spacer"></span>
-    <select id="auto-assign-select"><option value="" selected disabled>Auto-Assign&hellip;</option></select>
-    <button id="btn-export-json">Save</button>
-    <button id="btn-export-csv">Export CSV</button>
-    <a href="index.html" class="tool-switch-link">&larr; Home</a>
-    <input type="file" id="file-open-json-2" accept="application/json,.json" hidden>
-    <input type="file" id="file-import-signup" accept="text/csv,.csv" hidden>
-  </header>
+  <div class="sticky-header">
+    <header class="toolbar">
+      <strong class="app-title">Schedulizer <span class="tool-tag">Distribute</span></strong>
+      <button id="btn-new">New Project</button>
+      <button id="btn-open">Open&hellip;</button>
+      <button id="btn-import-signup">Import Sign-Up (CSV)&hellip;</button>
+      <button id="btn-help">Help</button>
+      <span class="spacer"></span>
+      <select id="auto-assign-select"><option value="" selected disabled>Auto-Assign&hellip;</option></select>
+      <button id="btn-export-json">Save</button>
+      <button id="btn-export-csv">Export CSV</button>
+      <a href="index.html" class="tool-switch-link">&larr; Home</a>
+      <input type="file" id="file-open-json-2" accept="application/json,.json" hidden>
+      <input type="file" id="file-import-signup" accept="text/csv,.csv" hidden>
+    </header>
 
-  <div id="highlight-banner" class="highlight-banner" hidden>
-    <span id="highlight-banner-text"></span>
-    <button id="btn-stop-highlight">Stop Highlighting</button>
+    <div id="highlight-banner" class="highlight-banner" hidden>
+      <span id="highlight-banner-text"></span>
+      <button id="btn-stop-highlight">Stop Highlighting</button>
+    </div>
   </div>
 
   <main class="groups-board" id="groups-board"></main>
@@ -91,8 +93,9 @@
       <h3>Groups</h3>
       <p>Groups sit side-by-side on the board — there's no day grid here, since a group's
         night was already decided elsewhere. Each group card shows how many people are in it
-        against its minimum. Drag participants and leaders directly into a group, or back out
-        to the drawers.</p>
+        against its minimum — click the number to edit it (defaults to 10 for newly-imported
+        groups). Drag participants and leaders directly into a group, or back out to the
+        drawers.</p>
 
       <h3>Preference match</h3>
       <p>Each participant shows a colored number badge next to their name — their current

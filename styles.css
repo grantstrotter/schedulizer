@@ -352,6 +352,20 @@ button:hover { background: #eef1f5; }
   color: var(--danger);
   font-weight: 600;
 }
+.min-input {
+  width: 3em;
+  padding: 0 2px;
+  font: inherit;
+  font-size: 1em;
+  color: inherit;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+}
+.min-input:hover, .min-input:focus {
+  border-color: var(--border);
+  background: var(--card-bg);
+}
 
 .preferences-list {
   font-size: 0.9em;
@@ -361,6 +375,20 @@ button:hover { background: #eef1f5; }
 }
 
 /* ---------- Candidate highlighting (Distribute tool) ---------- */
+
+/* Toolbar height varies (it wraps on narrow viewports), so the banner can't just use a
+   fixed sticky `top` offset below it — wrapping both in one sticky container sticks them
+   together as a unit regardless. The nested .toolbar reverts to static since the wrapper
+   now owns the stickiness (its own sticky rule is shared with the Schedule tool's page,
+   which has no wrapper, so it must stay as-is there). */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.sticky-header .toolbar {
+  position: static;
+}
 
 .highlight-banner {
   display: flex;
@@ -398,19 +426,26 @@ button:hover { background: #eef1f5; }
   outline-offset: 1px;
 }
 
+/* The sweep's start and end positions must render as pixel-identical frames, or the
+   infinite loop's snap-back is visible as a jump. Using transparent gradient stops over a
+   solid background-color (rather than opaque light/dark stops) guarantees that: wherever
+   the streak isn't currently covering, the plain background-color shows through — so
+   fully-off-screen (start/end) always looks like flat, uninterrupted color regardless of
+   exact pixel math, and `linear` timing keeps the sweep at a constant speed with no pause. */
 @keyframes candidate-shimmer {
-  0% { background-position: 0% 0; }
-  100% { background-position: 200% 0; }
+  from { background-position: -150% 0; }
+  to { background-position: 150% 0; }
 }
 .person-card[class*="candidate-t"] {
-  background-size: 250% 100%;
-  animation: candidate-shimmer 1.8s ease-in-out infinite;
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  animation: candidate-shimmer 1.8s linear infinite;
 }
-.candidate-t1 { background-image: linear-gradient(100deg, #cddaf9 30%, #f3f7ff 50%, #cddaf9 70%); }
-.candidate-t2 { background-image: linear-gradient(100deg, #cdebd7 30%, #f0fbf3 50%, #cdebd7 70%); }
-.candidate-t3 { background-image: linear-gradient(100deg, #fff3b0 30%, #fffbe0 50%, #fff3b0 70%); }
-.candidate-t4 { background-image: linear-gradient(100deg, #ffd8ad 30%, #fff2e2 50%, #ffd8ad 70%); }
-.candidate-t5 { background-image: linear-gradient(100deg, #f6c6c6 30%, #fdeaea 50%, #f6c6c6 70%); }
+.candidate-t1 { background-color: #cddaf9; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
+.candidate-t2 { background-color: #cdebd7; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
+.candidate-t3 { background-color: #fff3b0; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
+.candidate-t4 { background-color: #ffd8ad; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
+.candidate-t5 { background-color: #f6c6c6; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
 
 .tool-tag {
   font-weight: 400;

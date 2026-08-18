@@ -219,8 +219,20 @@ function renderGroupCard(group) {
   row.appendChild(delBtn);
   card.appendChild(row);
 
-  const countClass = group.personIds.length < group.minimumRequired ? 'group-count under-min' : 'group-count';
-  card.appendChild(el('div', { class: countClass, text: `${group.personIds.length} / ${group.minimumRequired}${group.day ? ' · ' + DAY_LABELS[group.day] : ''}` }));
+  const countDiv = el('div', { class: group.personIds.length < group.minimumRequired ? 'group-count under-min' : 'group-count' });
+  countDiv.appendChild(document.createTextNode(`${group.personIds.length} / `));
+  const minInput = el('input', { class: 'min-input', attrs: { type: 'number', min: '0', title: 'Minimum required' } });
+  minInput.value = group.minimumRequired;
+  minInput.addEventListener('change', () => {
+    const val = parseInt(minInput.value, 10);
+    group.minimumRequired = Number.isFinite(val) && val >= 0 ? val : 0;
+    minInput.value = group.minimumRequired;
+    countDiv.classList.toggle('under-min', group.personIds.length < group.minimumRequired);
+    persist();
+  });
+  countDiv.appendChild(minInput);
+  if (group.day) countDiv.appendChild(document.createTextNode(` · ${DAY_LABELS[group.day]}`));
+  card.appendChild(countDiv);
 
   const isHighlighting = highlightGroupId === group.id;
   const highlightBtn = el('button', {

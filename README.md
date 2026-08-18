@@ -90,18 +90,20 @@ data shape but aren't used by the Schedule tool itself.
 - **Start**: same auto-resume/empty-state behavior as the Schedule tool, but with its
   own separate autosave — the two tools never share project data.
 - **Groups**: not created manually — import a sign-up CSV (see below) to derive them
-  from the form's own columns, or open a `.json` project that already has them.
+  from the form's own columns, or open a `.json` project that already has them. Each
+  group's minimum is editable inline (click the number in its card, defaults to 10).
 - **Import Sign-Up (CSV)**: expects a Google Forms export with a `Name` column and one
   column per group question, headers containing the group name in brackets (e.g.
   `Which groups would you prefer to do? [Wednesday Night - Young Adults]`) with values
   like `1st Choice`, `2nd Choice`, etc. One group is created per such column, even if
-  nobody ranked it. If the group's name starts with a day name, that's parsed out for
-  availability checking. Optional `Email`, `Phone`, and an availability column
+  nobody ranked it. If a day name appears anywhere in the group's name, that's parsed
+  out for availability checking. Optional `Email`, `Phone`, and an availability column
   (comma-separated day names) are also read if present. Importing again adds new people
   and merges into an existing person by matching email, rather than duplicating them.
 - **Placing people**: drag a leader or participant from a drawer straight into a group
   (no day grid here — groups sit side-by-side since their night was already decided in
-  the Schedule tool). Availability is checked against the group's parsed day, same as
+  the Schedule tool, sorted by that day then alphabetically). Availability is checked
+  against the group's parsed day, same as
   the Schedule tool.
 - **Preference match**: each placed person shows a colored number badge for their
   current group's rank in their preferences — blue for a great match, shading through

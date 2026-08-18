@@ -498,9 +498,31 @@ function syncModelFromDom() {
 }
 
 function handleDragEnd() {
+  dragOrigin = null;
   clearDragBlockToast();
   syncModelFromDom();
   render();
+}
+
+let dragOrigin = null; // { item, parent, nextSibling } captured at drag start, for Escape-to-cancel
+
+function recordDragOrigin(evt) {
+  dragOrigin = { item: evt.item, parent: evt.from, nextSibling: evt.item.nextElementSibling };
+}
+
+function cancelActiveDrag() {
+  if (!dragOrigin) return;
+  const { item, parent, nextSibling } = dragOrigin;
+  if (nextSibling && nextSibling.parentElement === parent) {
+    parent.insertBefore(item, nextSibling);
+  } else {
+    parent.appendChild(item);
+  }
+  dragOrigin = null;
+  clearDragBlockToast();
+  // Force Sortable to end its in-progress drag now that we've restored the DOM ourselves
+  document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+  document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse' }));
 }
 
 function normalizeBoardAdd(evt) {
@@ -545,6 +567,7 @@ function attachSortables() {
       preventOnFilter: false,
       animation: 150,
       forceFallback: true,
+      onStart: recordDragOrigin,
       onMove: checkBoardMoveAllowed,
       onAdd: normalizeBoardAdd,
       onEnd: handleDragEnd
@@ -712,6 +735,10 @@ function wireToolbar() {
 
 function wireKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      cancelActiveDrag();
+      return;
+    }
     if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 's') return;
     e.preventDefault();
     if (project) exportJSON();

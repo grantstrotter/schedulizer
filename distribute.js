@@ -3,6 +3,7 @@ const MATCH_TIER_COUNT = 5; // ranks 5th-or-worse all share the last (worst) tie
 
 let project = null;
 let sortables = [];
+let highlightGroupId = null; // group whose outside candidates are currently shimmering, if any
 
 function blankProject() {
   return { groups: [], leaders: [], participants: [] };
@@ -64,6 +65,7 @@ function startApp() {
 function newProject(confirmFirst) {
   if (confirmFirst && project && !confirm('Start a new project? This replaces the current one (still saved in local autosave until you start/open another).')) return;
   project = blankProject();
+  highlightGroupId = null;
   persist();
   startApp();
 }
@@ -104,6 +106,7 @@ function loadProjectFromObject(obj) {
     if (Array.isArray(obj.participants)) p.participants = obj.participants.map(normalizePerson(false));
   }
   project = p;
+  highlightGroupId = null;
   persist();
   startApp();
 }
@@ -119,6 +122,7 @@ function render() {
   renderAutoAssignMenu();
   attachSortables();
   persist();
+  applyHighlight(); // reapply any active candidate highlight to the freshly-rendered DOM
 }
 
 function renderAutoAssignMenu() {
@@ -163,7 +167,8 @@ function renderDrawers() {
 }
 
 function renderGroupCard(group) {
-  const card = el('div', { class: 'group-card board-group-card', attrs: { 'data-group-id': group.id, 'data-type': 'group' } });
+  const cardClass = `group-card board-group-card${highlightGroupId === group.id ? ' group-card--highlighting' : ''}`;
+  const card = el('div', { class: cardClass, attrs: { 'data-group-id': group.id, 'data-type': 'group' } });
 
   const row = el('div', { class: 'card-row' });
   const nameSpan = el('span', { class: 'group-name', text: group.name || '(unnamed group)' });
@@ -204,6 +209,19 @@ function renderGroupCard(group) {
 
   const countClass = group.personIds.length < group.minimumRequired ? 'group-count under-min' : 'group-count';
   card.appendChild(el('div', { class: countClass, text: `${group.personIds.length} / ${group.minimumRequired}${group.day ? ' · ' + DAY_LABELS[group.day] : ''}` }));
+
+  const isHighlighting = highlightGroupId === group.id;
+  const highlightBtn = el('button', {
+    class: `group-highlight-btn${isHighlighting ? ' active' : ''}`,
+    text: isHighlighting ? 'Stop Highlighting' : 'Highlight Candidates',
+    attrs: { title: 'Show people outside this group who ranked it' }
+  });
+  highlightBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    highlightGroupId = highlightGroupId === group.id ? null : group.id;
+    applyHighlight();
+  });
+  card.appendChild(highlightBtn);
 
   const peopleList = el('div', { class: 'people-list', attrs: { 'data-container': 'group-people', 'data-group-id': group.id } });
   group.personIds.forEach(pid => {
@@ -346,6 +364,57 @@ function renderPersonCard(person) {
 
   details.appendChild(detail);
   return details;
+}
+
+// ---------- Candidate highlighting ----------
+// Pure DOM-class updates, no render() — keeps this cheap and non-disruptive (expanded
+// cards, scroll position, and Sortables all stay untouched) since it's just a visual
+// filter, not a data change. render() calls this again afterward so a highlight survives
+// (or correctly clears itself) across drags, imports, and auto-assign actions.
+
+function applyHighlight() {
+  document.querySelectorAll('.person-card').forEach(card => {
+    card.className = card.className.replace(/\bcandidate-t[1-5]\b/g, '').replace(/\s+/g, ' ').trim();
+  });
+  document.querySelectorAll('.board-group-card').forEach(card => card.classList.remove('group-card--highlighting'));
+  document.querySelectorAll('.group-highlight-btn').forEach(btn => {
+    btn.textContent = 'Highlight Candidates';
+    btn.classList.remove('active');
+  });
+
+  const banner = document.getElementById('highlight-banner');
+
+  if (!highlightGroupId) {
+    banner.hidden = true;
+    return;
+  }
+
+  const group = findGroup(highlightGroupId);
+  if (!group) {
+    highlightGroupId = null;
+    banner.hidden = true;
+    return;
+  }
+
+  const groupCard = document.querySelector(`.group-card[data-group-id="${group.id}"]`);
+  if (groupCard) {
+    groupCard.classList.add('group-card--highlighting');
+    const btn = groupCard.querySelector('.group-highlight-btn');
+    if (btn) { btn.textContent = 'Stop Highlighting'; btn.classList.add('active'); }
+  }
+
+  document.querySelectorAll('.person-card').forEach(card => {
+    const person = findPerson(card.dataset.personId);
+    if (!person || person.isLeader) return; // leaders are pre-determined, never candidates
+    const currentGroup = getPersonGroup(person.id);
+    if (currentGroup && currentGroup.id === group.id) return; // already in this group
+    const rank = person.preferences.indexOf(group.id);
+    if (rank === -1) return; // didn't rank this group at all
+    card.classList.add(`candidate-t${Math.min(rank + 1, MATCH_TIER_COUNT)}`);
+  });
+
+  banner.hidden = false;
+  document.getElementById('highlight-banner-text').textContent = `Highlighting candidates for "${group.name}"`;
 }
 
 // ---------- Drag and drop ----------
@@ -750,11 +819,19 @@ function wireKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       cancelActiveDrag();
+      if (highlightGroupId) { highlightGroupId = null; applyHighlight(); }
       return;
     }
     if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 's') return;
     e.preventDefault();
     if (project) exportJSON();
+  });
+}
+
+function wireHighlightBanner() {
+  document.getElementById('btn-stop-highlight').addEventListener('click', () => {
+    highlightGroupId = null;
+    applyHighlight();
   });
 }
 
@@ -775,6 +852,7 @@ wireEmptyState();
 wireToolbar();
 wireKeyboardShortcuts();
 wireHelpModal();
+wireHighlightBanner();
 wirePersonExpandToggle();
 
 const autosaved = localStorage.getItem(AUTOSAVE_KEY);

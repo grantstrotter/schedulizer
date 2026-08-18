@@ -360,6 +360,58 @@ button:hover { background: #eef1f5; }
   padding-left: 8px;
 }
 
+/* ---------- Candidate highlighting (Distribute tool) ---------- */
+
+.highlight-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9em;
+}
+.highlight-banner[hidden] { display: none; }
+.highlight-banner button {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+.highlight-banner button:hover { background: rgba(255, 255, 255, 0.3); }
+
+.group-highlight-btn {
+  display: block;
+  width: 100%;
+  font-size: 0.75em;
+  padding: 3px 8px;
+  margin: 4px 0;
+}
+.group-highlight-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.group-card--highlighting {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@keyframes candidate-shimmer {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+.person-card[class*="candidate-t"] {
+  background-size: 250% 100%;
+  animation: candidate-shimmer 1.8s ease-in-out infinite;
+}
+.candidate-t1 { background-image: linear-gradient(100deg, #cddaf9 30%, #f3f7ff 50%, #cddaf9 70%); }
+.candidate-t2 { background-image: linear-gradient(100deg, #cdebd7 30%, #f0fbf3 50%, #cdebd7 70%); }
+.candidate-t3 { background-image: linear-gradient(100deg, #fff3b0 30%, #fffbe0 50%, #fff3b0 70%); }
+.candidate-t4 { background-image: linear-gradient(100deg, #ffd8ad 30%, #fff2e2 50%, #ffd8ad 70%); }
+.candidate-t5 { background-image: linear-gradient(100deg, #f6c6c6 30%, #fdeaea 50%, #f6c6c6 70%); }
+
 .tool-tag {
   font-weight: 400;
   font-size: 0.75em;

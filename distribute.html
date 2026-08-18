@@ -38,6 +38,11 @@
     <input type="file" id="file-import-signup" accept="text/csv,.csv" hidden>
   </header>
 
+  <div id="highlight-banner" class="highlight-banner" hidden>
+    <span id="highlight-banner-text"></span>
+    <button id="btn-stop-highlight">Stop Highlighting</button>
+  </div>
+
   <main class="groups-board" id="groups-board"></main>
 
   <section class="drawers" id="drawers">
@@ -107,6 +112,15 @@
         first — run 2nd, then 3rd, and so on as needed. Any step can be re-run any time (e.g.
         after manual adjustments). Leaders are never moved by these steps — they're placed by
         hand and stay put. Anything still under-filled afterward is left for you to adjust.</p>
+
+      <h3>Highlighting candidates</h3>
+      <p>Each group card has a <strong>Highlight Candidates</strong> button — click it to
+        shimmer everyone outside that group (in another group, or still unplaced) who ranked
+        it, colored by the same rank-badge colors so you can see at a glance how good a match
+        they'd be if dragged in. Leaders never shimmer, since they're pre-determined. Only one
+        group highlights at a time; a banner at the top shows which one, with its own
+        <strong>Stop Highlighting</strong> button — clicking the group's button again, or
+        pressing <kbd>Esc</kbd>, also turns it off.</p>
 
       <h3>Leader ⇄ Participant</h3>
       <p>Toggle the <strong>Leader</strong> checkbox on an expanded person card to flip their

@@ -441,6 +441,8 @@ function renderPersonCard(person) {
 function applyHighlight() {
   document.querySelectorAll('.person-card').forEach(card => {
     card.className = card.className.replace(/\bcandidate-t[1-5]\b/g, '').replace(/\s+/g, ' ').trim();
+    const badge = card.querySelector('.candidate-rank-badge');
+    if (badge) badge.remove();
   });
   document.querySelectorAll('.board-group-card').forEach(card => card.classList.remove('group-card--highlighting'));
   document.querySelectorAll('.group-highlight-btn').forEach(btn => {
@@ -476,7 +478,14 @@ function applyHighlight() {
     if (currentGroup && currentGroup.id === group.id) return; // already in this group
     const rank = person.preferences.indexOf(group.id);
     if (rank === -1) return; // didn't rank this group at all
-    card.classList.add(`candidate-t${Math.min(rank + 1, MATCH_TIER_COUNT)}`);
+    const tier = Math.min(rank + 1, MATCH_TIER_COUNT);
+    card.classList.add(`candidate-t${tier}`);
+    // A number badge alongside the shimmer color, so the rank reads even without
+    // relying on distinguishing the background hue. Must go inside <summary>, not as a
+    // direct child of <details> — <details> only renders children other than its first
+    // <summary> while open, so a sibling badge would be invisible whenever collapsed
+    // (i.e. almost always, since cards default to collapsed).
+    card.querySelector('summary').appendChild(el('span', { class: `candidate-rank-badge match-t${tier}`, text: String(rank + 1) }));
   });
 
   banner.hidden = false;

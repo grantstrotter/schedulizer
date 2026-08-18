@@ -125,11 +125,12 @@ data shape but aren't used by the Schedule tool itself.
   time. Leaders are never moved by these steps (they're placed by hand and stay put).
   Anything still under-filled afterward is left for manual adjustment.
 - **Highlight Candidates**: each group has a button that shimmers everyone outside that
-  group (elsewhere or unplaced) who ranked it, colored by the same rank-badge colors, so
-  you can manually drag in a good match. Leaders never shimmer. Only one group
-  highlights at a time; a banner at the top names which one and has its own stop
-  button — the group's own button (now reading "Stop Highlighting"), or `Esc`, also
-  turns it off.
+  group (elsewhere or unplaced) who ranked it, colored by the same rank-badge colors —
+  plus a small number badge in the corner with the exact rank, so it's not
+  color-only — so you can manually drag in a good match. Leaders never shimmer. Only
+  one group highlights at a time; a banner at the top names which one and has its own
+  stop button — the group's own button (now reading "Stop Highlighting"), or `Esc`,
+  also turns it off.
 - **Save / Export**: same as the Schedule tool — "Save" downloads the full project
   JSON, "Export CSV" downloads one row per person with their group, rank, and match
   emoji.

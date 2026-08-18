@@ -167,6 +167,7 @@ button:hover { background: #eef1f5; }
 /* ---------- Cards ---------- */
 
 .group-card, .person-card {
+  position: relative;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -470,6 +471,33 @@ button:hover { background: #eef1f5; }
 .candidate-t3 { background-color: #fff3b0; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
 .candidate-t4 { background-color: #ffd8ad; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
 .candidate-t5 { background-color: #f6c6c6; background-image: linear-gradient(100deg, transparent 30%, #ffffff 50%, transparent 70%); }
+
+/* Number badge on a candidate card, so the rank reads even without distinguishing the
+   shimmer's hue — reuses the .match-tN color classes for consistency with the rank
+   badge shown on a person's currently-placed card. */
+.candidate-rank-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72em;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 2;
+}
+/* Higher specificity than either .candidate-rank-badge or .match-tN alone, so this wins
+   regardless of source order — the yellow/orange tiers need dark text for contrast. */
+.candidate-rank-badge.match-t3, .candidate-rank-badge.match-t4 {
+  color: #1a1a1a;
+}
 
 .tool-tag {
   font-weight: 400;

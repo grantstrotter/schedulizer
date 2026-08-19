@@ -6,11 +6,11 @@ let sortables = [];
 function blankProject() {
   const days = {};
   DAYS.forEach(d => { days[d] = { groupIds: [], personIds: [] }; });
-  return { days, groups: [], leaders: [], participants: [] };
+  return { days, groups: [], leaders: [] };
 }
 
 function getAllPeople() {
-  return project.leaders.concat(project.participants);
+  return project.leaders;
 }
 
 function findPerson(id) {
@@ -104,7 +104,6 @@ function loadProjectFromObject(obj) {
       minimumRequired: typeof g.minimumRequired === 'number' ? g.minimumRequired : 10
     }));
     if (Array.isArray(obj.leaders)) p.leaders = obj.leaders.map(normalizePerson(true));
-    if (Array.isArray(obj.participants)) p.participants = obj.participants.map(normalizePerson(false));
   }
   project = p;
   persist();
@@ -150,7 +149,7 @@ function renderDaysRow() {
     });
     col.appendChild(groupsList);
 
-    col.appendChild(el('div', { class: 'zone-label', text: 'People' }));
+    col.appendChild(el('div', { class: 'zone-label', text: 'Leaders' }));
     const peopleList = el('div', { class: 'people-list', attrs: { 'data-container': 'day-people', 'data-day': day } });
     project.days[day].personIds.forEach(pid => {
       const p = findPerson(pid);
@@ -174,12 +173,6 @@ function renderDrawers() {
   const unplacedLeaders = project.leaders.filter(p => !isPersonPlaced(p.id));
   unplacedLeaders.forEach(p => leadersDrawer.appendChild(renderPersonCard(p)));
   document.getElementById('count-leaders').textContent = `(${unplacedLeaders.length})`;
-
-  const participantsDrawer = document.getElementById('drawer-participants');
-  participantsDrawer.innerHTML = '';
-  const unplacedParticipants = project.participants.filter(p => !isPersonPlaced(p.id));
-  unplacedParticipants.forEach(p => participantsDrawer.appendChild(renderPersonCard(p)));
-  document.getElementById('count-participants').textContent = `(${unplacedParticipants.length})`;
 }
 
 function renderGroupCard(group) {
@@ -242,18 +235,12 @@ function renderPersonCard(person) {
   summary.appendChild(handle);
   const nameSpan = el('span', { class: 'person-name', text: `${person.first} ${person.last}`.trim() || '(unnamed)' });
   summary.appendChild(nameSpan);
-  let badge = null;
-  if (person.isLeader) {
-    badge = el('span', { class: 'leader-emoji', text: '🎯' });
-    summary.appendChild(badge);
-  }
   const delBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Delete person' } });
   delBtn.addEventListener('click', (e) => {
     e.preventDefault();
     if (!confirm(`Delete ${person.first} ${person.last}`.trim() + '?')) return;
     removePersonFromAllPlacements(person.id);
     project.leaders = project.leaders.filter(p => p.id !== person.id);
-    project.participants = project.participants.filter(p => p.id !== person.id);
     render();
   });
   summary.appendChild(delBtn);
@@ -289,40 +276,6 @@ function renderPersonCard(person) {
   emailInput.value = person.email;
   emailInput.addEventListener('input', () => { person.email = emailInput.value; persist(); });
   detail.appendChild(emailInput);
-
-  const leaderRow = el('label', { class: 'contact-line leader-toggle' });
-  const leaderCb = el('input', { attrs: { type: 'checkbox' } });
-  leaderCb.checked = person.isLeader;
-  leaderRow.appendChild(leaderCb);
-  leaderRow.appendChild(document.createTextNode(' Leader'));
-  detail.appendChild(leaderRow);
-  leaderCb.addEventListener('change', () => {
-    person.isLeader = leaderCb.checked;
-    project.leaders = project.leaders.filter(p => p.id !== person.id);
-    project.participants = project.participants.filter(p => p.id !== person.id);
-    (person.isLeader ? project.leaders : project.participants).push(person);
-
-    if (person.isLeader && !badge) {
-      badge = el('span', { class: 'leader-emoji', text: '🎯' });
-      summary.insertBefore(badge, delBtn);
-    } else if (!person.isLeader && badge) {
-      badge.remove();
-      badge = null;
-    }
-
-    // If sitting unassigned in a drawer, move to the other drawer to match
-    const currentContainer = details.parentElement;
-    if (currentContainer && currentContainer.dataset.container === 'people-drawer') {
-      const targetDrawer = document.getElementById(person.isLeader ? 'drawer-leaders' : 'drawer-participants');
-      if (currentContainer.id !== targetDrawer.id) {
-        targetDrawer.appendChild(details);
-        document.getElementById('count-leaders').textContent = `(${document.querySelectorAll('#drawer-leaders > .person-card').length})`;
-        document.getElementById('count-participants').textContent = `(${document.querySelectorAll('#drawer-participants > .person-card').length})`;
-      }
-    }
-
-    persist();
-  });
 
   const availLabel = el('div', { class: 'contact-line', text: 'Available:' });
   detail.appendChild(availLabel);
@@ -447,22 +400,6 @@ function syncModelFromDom() {
     const listEl = document.querySelector(`.group-card[data-group-id="${g.id}"] > .people-list`);
     if (listEl) g.personIds = Array.from(listEl.querySelectorAll(':scope > .person-card')).map(n => n.dataset.personId);
   });
-
-  const leaderIds = Array.from(document.querySelectorAll('#drawer-leaders > .person-card')).map(n => n.dataset.personId);
-  const participantIds = Array.from(document.querySelectorAll('#drawer-participants > .person-card')).map(n => n.dataset.personId);
-
-  const allPeople = getAllPeople();
-  leaderIds.forEach(id => {
-    const p = allPeople.find(x => x.id === id);
-    if (p) p.isLeader = true;
-  });
-  participantIds.forEach(id => {
-    const p = allPeople.find(x => x.id === id);
-    if (p) p.isLeader = false;
-  });
-
-  project.leaders = allPeople.filter(p => p.isLeader);
-  project.participants = allPeople.filter(p => !p.isLeader);
 }
 
 function handleDragEnd() {
@@ -531,7 +468,6 @@ function attachSortables() {
   const containers = [
     document.getElementById('drawer-groups'),
     document.getElementById('drawer-leaders'),
-    document.getElementById('drawer-participants'),
     ...Array.from(document.querySelectorAll('.groups-list')),
     ...Array.from(document.querySelectorAll('.people-list'))
   ];
@@ -563,23 +499,23 @@ function exportJSON() {
 }
 
 function exportCSV() {
-  const rows = [['day', 'group', 'first', 'last', 'phone', 'email', 'isLeader']];
+  const rows = [['day', 'group', 'first', 'last', 'phone', 'email']];
   DAYS.forEach(day => {
     project.days[day].groupIds.forEach(gid => {
       const g = findGroup(gid);
       if (!g) return;
       g.personIds.forEach(pid => {
         const p = findPerson(pid);
-        if (p) rows.push([DAY_LABELS[day], g.name, p.first, p.last, p.phone, p.email, p.isLeader]);
+        if (p) rows.push([DAY_LABELS[day], g.name, p.first, p.last, p.phone, p.email]);
       });
     });
     project.days[day].personIds.forEach(pid => {
       const p = findPerson(pid);
-      if (p) rows.push([DAY_LABELS[day], '', p.first, p.last, p.phone, p.email, p.isLeader]);
+      if (p) rows.push([DAY_LABELS[day], '', p.first, p.last, p.phone, p.email]);
     });
   });
   getAllPeople().filter(p => !isPersonPlaced(p.id)).forEach(p => {
-    rows.push(['(unassigned)', '', p.first, p.last, p.phone, p.email, p.isLeader]);
+    rows.push(['(unassigned)', '', p.first, p.last, p.phone, p.email]);
   });
   const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -604,15 +540,19 @@ function importCSVFile(file) {
   reader.onload = () => {
     const lines = reader.result.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lines.length < 2) return;
+    let imported = 0;
+    let skipped = 0;
     lines.slice(1).forEach(line => {
       const [first, last, phone, email, isLeaderRaw, availabilityRaw] = parseCSVLine(line);
       const isLeader = ['true', '1', 'yes', 'y'].includes((isLeaderRaw || '').toLowerCase());
+      if (!isLeader) { skipped++; return; } // Schedule only tracks leaders now
       const availability = parseAvailability(availabilityRaw);
-      const person = { id: uid(), first: first || '', last: last || '', phone: phone || '', email: email || '', isLeader, availability, preferences: [] };
-      if (isLeader) project.leaders.push(person);
-      else project.participants.push(person);
+      const person = { id: uid(), first: first || '', last: last || '', phone: phone || '', email: email || '', isLeader: true, availability, preferences: [] };
+      project.leaders.push(person);
+      imported++;
     });
     render();
+    showToast(`Imported ${imported} leader${imported === 1 ? '' : 's'}.${skipped ? ` Skipped ${skipped} non-leader row${skipped === 1 ? '' : 's'} — Schedule only tracks leaders now.` : ''}`);
   };
   reader.readAsText(file);
 }
@@ -672,13 +612,6 @@ function wireToolbar() {
     e.preventDefault();
     const id = uid();
     project.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [] });
-    render();
-    focusNewPerson(id);
-  });
-  document.getElementById('btn-add-participant').addEventListener('click', (e) => {
-    e.preventDefault();
-    const id = uid();
-    project.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [] });
     render();
     focusNewPerson(id);
   });

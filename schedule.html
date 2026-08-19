@@ -48,10 +48,6 @@
       <summary>Leaders 🎯 <span class="count" id="count-leaders"></span><button id="btn-add-leader" class="drawer-add-btn">+ Add Leader</button></summary>
       <div class="drawer-list" id="drawer-leaders" data-container="people-drawer" data-day="drawer"></div>
     </details>
-    <details class="drawer" open>
-      <summary>Participants <span class="count" id="count-participants"></span><button id="btn-add-participant" class="drawer-add-btn">+ Add Participant</button></summary>
-      <div class="drawer-list" id="drawer-participants" data-container="people-drawer" data-day="drawer"></div>
-    </details>
   </section>
 </div>
 
@@ -70,7 +66,7 @@
 
       <h3>Days</h3>
       <p>Seven columns across the top, one per day, each with a <strong>Groups</strong>
-        section and a <strong>People</strong> section. You can drop a group or person
+        section and a <strong>Leaders</strong> section. You can drop a group or leader
         anywhere in that day's column — not just its matching section — and it'll land
         in the right spot.</p>
 
@@ -79,25 +75,22 @@
         Click the ✎ icon to rename it, drag it by its title bar onto any day to schedule
         it there, and drag it back to the drawer to unschedule it.</p>
 
-      <h3>People</h3>
-      <p>Bring people in with <strong>Import People (CSV)</strong>
-        (columns: <code>first,last,phone,email,isLeader,availability</code> — availability
-        is optional, a <code>|</code>-separated list of days like <code>sunday|thursday</code>
-        or <code>Sun|Thu</code>) or add them one at a time with <strong>+ Add Leader</strong> /
-        <strong>+ Add Participant</strong>. Click a person's name to expand their card and
-        fill in contact info. Drag a person's title bar onto a day, or straight into a group
-        to nest them under it.</p>
+      <h3>Leaders</h3>
+      <p>This tool is just about deciding which nights groups run, based on who's leading
+        them — it doesn't track participants at all (that's what the Distribute tool is
+        for). Bring leaders in with <strong>Import People (CSV)</strong>
+        (columns: <code>first,last,phone,email,isLeader,availability</code> — rows where
+        <code>isLeader</code> isn't true are skipped; availability is optional, a
+        <code>|</code>-separated list of days like <code>sunday|thursday</code> or
+        <code>Sun|Thu</code>) or add them one at a time with <strong>+ Add Leader</strong>.
+        Click a leader's name to expand their card and fill in contact info. Drag their
+        title bar onto a day, or straight into a group to nest them under it.</p>
 
       <h3>Availability</h3>
-      <p>Inside an expanded person card, check the nights they're available. A person with
+      <p>Inside an expanded leader card, check the nights they're available. A leader with
         no boxes checked is treated as available every night. Trying to drop someone (or a
         group, based on its leaders) on a night they're not available is blocked, with a
         toast explaining why.</p>
-
-      <h3>Leader ⇄ Participant</h3>
-      <p>Toggle the <strong>Leader</strong> checkbox on an expanded person card to flip
-        their role — if they're unassigned it also moves them to the other drawer; if
-        they're already placed on a day or in a group, they just change roles in place.</p>
 
       <h3>Exporting</h3>
       <p><strong>Save</strong> downloads the full project as JSON (reopen it anytime).

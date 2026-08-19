@@ -3,7 +3,7 @@ import { DAYS, DAY_LABELS } from '../lib/constants.js';
 import { uid, csvEscape, parseCSVLine, parseAvailability, downloadBlob } from '../lib/util.js';
 import { showToast } from '../lib/toast.js';
 
-const AUTOSAVE_KEY = 'schedulizer_project_v1';
+const AUTOSAVE_KEY = 'schedulizer_schedule_v1';
 
 export const project = writable(null);
 export const started = writable(false);

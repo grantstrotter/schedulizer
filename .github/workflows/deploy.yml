@@ -22,6 +22,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # Works around a known npm bug ("Exit handler never called!") that can crash npm ci
+      # mid-install on CI runners, leaving node_modules partially populated — bumping npm
+      # itself is the real fix, not just retrying and hoping.
+      - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3

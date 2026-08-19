@@ -467,7 +467,7 @@ function renderPersonCard(person) {
 
     project.groups.forEach(g => {
       const row = el('div', { class: 'preference-row' });
-      row.appendChild(el('span', { class: 'preference-group-name', text: g.name }));
+      row.appendChild(el('span', { class: 'preference-group-name', text: g.name, attrs: { title: g.name } }));
       const select = el('select', { class: 'rank-select', attrs: { 'data-group-id': g.id } });
       select.appendChild(el('option', { attrs: { value: '' }, text: '—' }));
       for (let r = 1; r <= project.groups.length; r++) {

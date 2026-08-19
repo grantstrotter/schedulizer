@@ -58,6 +58,17 @@ export function findGroupDay(p, groupId) {
   return null;
 }
 
+// The day a leader is currently scheduled on — directly on a day, or via whatever group
+// they're nested under — or null if unplaced (in the drawer, or nested in a group that's
+// itself still in the drawer).
+export function findPersonDay(p, personId) {
+  for (const d of DAYS) {
+    if (p.days[d].personIds.includes(personId)) return d;
+  }
+  const group = p.groups.find(g => g.personIds.includes(personId));
+  return group ? findGroupDay(p, group.id) : null;
+}
+
 export function isPersonPlaced(p, id) {
   for (const d of DAYS) {
     if (p.days[d].personIds.includes(id)) return true;

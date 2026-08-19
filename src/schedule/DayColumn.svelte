@@ -1,12 +1,7 @@
 <script>
   import { dragHandleZone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { DAY_LABELS } from '../lib/constants.js';
-  import { showDragBlockToast, clearDragBlockToast } from '../lib/toast.js';
-  import {
-    GROUP_ZONE_TYPE, PERSON_ZONE_TYPE, realItems,
-    isPersonAllowedOnDay, personBlockedMessage,
-    isGroupAllowedOnDay, unavailableLeadersFor, groupBlockedMessage
-  } from './dragdrop.js';
+  import { GROUP_ZONE_TYPE, PERSON_ZONE_TYPE, realItems } from './dragdrop.js';
   import { project, findGroup, findPerson, setDayGroups, setDayPeople } from './store.js';
   import GroupCard from './GroupCard.svelte';
   import PersonCard from './PersonCard.svelte';
@@ -22,54 +17,24 @@
   $: displayGroups = groups;
   $: displayPeople = people;
 
+  // No availability veto — dropping a group or leader on a night that doesn't match is
+  // allowed; the "needs review" badge on the affected card is what flags it afterward.
   function handleGroupsConsider(e) {
-    const proposed = e.detail.items;
-    const incoming = realItems(proposed, SHADOW_ITEM_MARKER_PROPERTY_NAME).find(g => !displayGroups.some(x => x.id === g.id));
-    if (incoming) {
-      const unavailable = unavailableLeadersFor(incoming, day, findPerson, $project);
-      if (unavailable.length) {
-        showDragBlockToast(`group:${incoming.id}:${day}`, groupBlockedMessage(unavailable, day));
-        return;
-      }
-    }
-    clearDragBlockToast();
-    displayGroups = proposed;
+    displayGroups = e.detail.items;
   }
 
   function handleGroupsFinalize(e) {
     const proposed = realItems(e.detail.items, SHADOW_ITEM_MARKER_PROPERTY_NAME);
-    const incoming = proposed.find(g => !groups.some(x => x.id === g.id));
-    if (incoming && !isGroupAllowedOnDay(incoming, day, findPerson, $project)) {
-      const unavailable = unavailableLeadersFor(incoming, day, findPerson, $project);
-      showDragBlockToast(`group:${incoming.id}:${day}`, groupBlockedMessage(unavailable, day));
-      displayGroups = groups;
-      return;
-    }
-    clearDragBlockToast();
     displayGroups = proposed;
     setDayGroups(day, proposed.map(g => g.id));
   }
 
   function handlePeopleConsider(e) {
-    const proposed = e.detail.items;
-    const incoming = realItems(proposed, SHADOW_ITEM_MARKER_PROPERTY_NAME).find(p => !displayPeople.some(x => x.id === p.id));
-    if (incoming && !isPersonAllowedOnDay(incoming, day)) {
-      showDragBlockToast(`person:${incoming.id}:${day}`, personBlockedMessage(incoming, day));
-      return;
-    }
-    clearDragBlockToast();
-    displayPeople = proposed;
+    displayPeople = e.detail.items;
   }
 
   function handlePeopleFinalize(e) {
     const proposed = realItems(e.detail.items, SHADOW_ITEM_MARKER_PROPERTY_NAME);
-    const incoming = proposed.find(p => !people.some(x => x.id === p.id));
-    if (incoming && !isPersonAllowedOnDay(incoming, day)) {
-      showDragBlockToast(`person:${incoming.id}:${day}`, personBlockedMessage(incoming, day));
-      displayPeople = people;
-      return;
-    }
-    clearDragBlockToast();
     displayPeople = proposed;
     setDayPeople(day, proposed.map(p => p.id));
   }

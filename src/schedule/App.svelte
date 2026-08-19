@@ -198,9 +198,10 @@
 
   <h3>Availability</h3>
   <p>Inside an expanded leader card, check the nights they're available. A leader with
-    no boxes checked is treated as available every night. Trying to drop someone (or a
-    group, based on its leaders) on a night they're not available is blocked, with a
-    toast explaining why.</p>
+    no boxes checked is treated as available every night. Dropping someone (or a group,
+    based on its leaders) on a night they're not available is still allowed — a dark red
+    <strong>?</strong> badge shows up on the person's card, or the group's card if the
+    mismatch is one of its nested leaders, so it's easy to catch and fix afterward.</p>
 
   <h3>Exporting</h3>
   <p><strong>Save</strong> downloads the full project as JSON (reopen it anytime).

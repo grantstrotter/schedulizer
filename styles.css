@@ -523,6 +523,7 @@ button:hover { background: #eef1f5; }
   font-weight: 700;
   color: #fff;
   background: var(--danger);
+  cursor: default;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   z-index: 2;
 }

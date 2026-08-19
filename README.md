@@ -127,6 +127,12 @@ data shape but aren't used by the Schedule tool itself.
 - **Comments**: an expanded person card has an editable Comments box below their
   availability, imported from the sign-up form's free-text question (if present) and
   editable by hand afterward.
+- **Needs Review**: a dark red "?" badge in a card's bottom-left corner means they're
+  placed in a group whose night isn't among their marked availability (applies to
+  leaders too). Only fires if they have at least one availability day checked — no
+  boxes checked means unrestricted, same convention as everywhere else. Manual drags
+  already block this exact mismatch, but the Auto-Assign steps place people by
+  preference rank alone, so this is how you catch and fix it afterward.
 - **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
   everyone still unassigned into their 1st-choice group, unconditionally. Each
   **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an

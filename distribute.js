@@ -304,6 +304,27 @@ function renderPersonCard(person) {
     matchBadge.title = info.tier === 'unranked' ? 'Not on this person’s preference list' : `Rank ${info.label} choice`;
   };
 
+  // Needs-review flag: placed in a group whose parsed night isn't among their marked
+  // availability. No availability marked at all means unrestricted (same convention used
+  // everywhere else in the app), so that alone never triggers this. Manual drags already
+  // block this exact mismatch, but auto-assign moves people by preference rank alone, so
+  // this can still happen — this badge is how staff notice and fix it afterward.
+  function needsAvailabilityReview() {
+    return !!(currentGroup && currentGroup.day && person.availability.length > 0 && !person.availability.includes(currentGroup.day));
+  }
+  let reviewBadge = null;
+  const refreshReviewBadge = () => {
+    const needsReview = needsAvailabilityReview();
+    if (needsReview && !reviewBadge) {
+      reviewBadge = el('span', { class: 'needs-review-badge', text: '?', attrs: { title: 'Needs review: Outside of stated availability' } });
+      summary.appendChild(reviewBadge);
+    } else if (!needsReview && reviewBadge) {
+      reviewBadge.remove();
+      reviewBadge = null;
+    }
+  };
+  refreshReviewBadge();
+
   const delBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Delete person' } });
   delBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -411,6 +432,7 @@ function renderPersonCard(person) {
       } else {
         person.availability = person.availability.filter(x => x !== d);
       }
+      refreshReviewBadge();
       persist();
     });
     label.appendChild(cb);

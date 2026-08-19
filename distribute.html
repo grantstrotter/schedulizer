@@ -79,30 +79,37 @@
         file you can keep or reopen later.</p>
 
       <h3>Importing a sign-up CSV</h3>
-      <p>This is built specifically for a Google Forms <strong>Multiple-choice grid</strong>
-        question, with each group as a grid <em>row</em> and choices labeled
-        <code>1st Choice</code>, <code>2nd Choice</code>, etc. as grid <em>columns</em> — not
-        Forms' separate dedicated "Ranking" question type, which exports differently and
-        won't parse here. Export responses as CSV; this tool looks for columns whose header
-        contains a group name in brackets, e.g. <code>Which groups would you prefer to do?
-        [Wednesday Night - Young Adults]</code>. One group is created per such column — even
-        if nobody ranked it — and the night is parsed out of the group's name when a day name
-        appears anywhere in it, purely for availability checking.</p>
-      <p>Each row is a person. It expects a <code>Name</code> column (split on the first
-        space into first/last), and optionally <code>Email</code>, <code>Phone</code>, an
-        availability column (comma-separated day names), and a free-text column whose header
-        contains "comment", "question", or "concern" — e.g. "Any comments, questions, or
-        unique scheduling concerns?" — which becomes their editable <strong>Comments</strong>
-        field. Importing again adds new people; a row whose email matches an existing person
-        (leader or participant) merges into them instead of creating a duplicate, refreshing
-        their comments too.</p>
+      <p>Built specifically for a Google Forms <strong>Multiple-choice grid</strong> question,
+        with each group as a grid <em>row</em> and choices labeled <code>1st Choice</code>,
+        <code>2nd Choice</code>, etc. as grid <em>columns</em> — not Forms' separate dedicated
+        "Ranking" question type, which exports differently and won't parse here. Export
+        responses as CSV and choose the file — before anything is imported, a
+        <strong>Map Sign-Up CSV Columns</strong> dialog shows every header and lets you
+        confirm or correct what each one means, since a CSV's column order doesn't always
+        match what you'd expect (e.g. it can drift from the live form's current question
+        order).</p>
+      <p>In that dialog: pick the <strong>Name</strong> column (or separate First/Last
+        columns), and optionally Phone, Email, Availability (comma-separated day names), and
+        Comments — sign-up rows always come in as participants, since leaders are added by
+        hand rather than detected from the form. Then, for <strong>Group Rankings</strong>,
+        add each column that represents a group choice and drag to set their order — that
+        order becomes the
+        board's group order going forward, with no further auto-sorting layered on it (you
+        can always adjust it later by dragging group cards directly on the board). A column's
+        <code>[Bracket]</code> text, if present, pre-fills its group name; edit it if you
+        want something different. Re-importing leaves existing (name-matched) groups exactly
+        where they are and only appends genuinely new ones; a row whose email matches an
+        existing person (leader or participant) merges into them instead of creating a
+        duplicate, refreshing their comments too.</p>
 
       <h3>Groups</h3>
       <p>Groups sit side-by-side on the board — there's no day grid here, since a group's
         night was already decided elsewhere. Each group card shows how many people are in it
         against its minimum — click the number to edit it (defaults to 10 for newly-imported
         groups). Drag participants and leaders directly into a group, or back out to the
-        drawers.</p>
+        drawers. Drag a group card by its title bar to reorder it relative to the others —
+        the board just shows groups in whatever order they're stored in, so this is how you
+        adjust it after import.</p>
 
       <h3>Preference match</h3>
       <p>Each participant shows a colored number badge next to their name — their current
@@ -170,6 +177,61 @@
       <h3>Exporting</h3>
       <p><strong>Save</strong> downloads the full project as JSON. <strong>Export CSV</strong>
         downloads one row per person with their group, name, phone, email, and leader flag.</p>
+    </div>
+  </div>
+</div>
+
+<div id="csv-mapping-modal" class="modal-overlay" hidden>
+  <div class="modal-content csv-mapping-content" role="dialog" aria-modal="true" aria-labelledby="csv-mapping-title">
+    <div class="modal-header">
+      <h2 id="csv-mapping-title">Map Sign-Up CSV Columns</h2>
+      <button id="btn-csv-mapping-close" class="icon-btn modal-close" title="Cancel">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mapping-section">
+        <h3>Name</h3>
+        <label class="mapping-radio"><input type="radio" name="name-mode" value="single" checked> Single column, split on first space</label>
+        <label class="mapping-radio"><input type="radio" name="name-mode" value="split"> Separate First / Last columns</label>
+        <div id="name-single-row" class="mapping-row">
+          <span class="mapping-label">Name column</span>
+          <select id="map-name"></select>
+        </div>
+        <div id="name-split-row" class="mapping-row" hidden>
+          <span class="mapping-label">First name column</span>
+          <select id="map-first"></select>
+          <span class="mapping-label">Last name column</span>
+          <select id="map-last"></select>
+        </div>
+      </div>
+
+      <div class="mapping-section">
+        <div class="mapping-row"><span class="mapping-label">Phone</span><select id="map-phone"></select></div>
+        <div class="mapping-row"><span class="mapping-label">Email</span><select id="map-email"></select></div>
+        <div class="mapping-row"><span class="mapping-label">Availability</span><select id="map-availability"></select></div>
+        <p class="mapping-hint mapping-hint-indent">Assumes this column's content is comma-separated day names, full or abbreviated — e.g. "Sunday, Wednesday" or "Sun, Wed".</p>
+        <div class="mapping-row"><span class="mapping-label">Comments</span><select id="map-comments"></select></div>
+      </div>
+
+      <div class="mapping-section">
+        <h3>Group Rankings</h3>
+        <p class="mapping-hint">Add each column that represents a group choice, then drag to set the order. This becomes the group order on the board. Each person's rank in a group comes from the first number found anywhere in that cell's text (e.g. "1st Choice", "Choice 2"). A cell with no digit, like "First", is treated as unranked.</p>
+        <div class="mapping-columns">
+          <div class="mapping-pool">
+            <div class="mapping-pool-label">Available columns</div>
+            <div id="mapping-available-list" class="mapping-available-list"></div>
+          </div>
+          <div class="mapping-groups">
+            <div class="mapping-pool-label">Group order</div>
+            <div id="mapping-group-list" class="mapping-group-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mapping-error" class="mapping-error" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-csv-mapping-cancel">Cancel</button>
+      <button id="btn-csv-mapping-import">Import</button>
     </div>
   </div>
 </div>

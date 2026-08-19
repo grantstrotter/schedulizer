@@ -148,18 +148,6 @@ function matchInfo(person, group) {
   return { label: String(rank + 1), tier: `t${Math.min(rank + 1, MATCH_TIER_COUNT)}` };
 }
 
-// Display order only — doesn't touch project.groups itself. Sorted by day of week
-// (Sun-Sat, matching the Schedule tool), with undated groups pushed to the end, then
-// alphabetically within the same day.
-function sortedGroups() {
-  return [...project.groups].sort((a, b) => {
-    const dayA = a.day ? DAYS.indexOf(a.day) : DAYS.length;
-    const dayB = b.day ? DAYS.indexOf(b.day) : DAYS.length;
-    if (dayA !== dayB) return dayA - dayB;
-    return a.name.localeCompare(b.name);
-  });
-}
-
 function renderBoard() {
   const board = document.getElementById('groups-board');
   board.innerHTML = '';
@@ -170,7 +158,10 @@ function renderBoard() {
     }));
     return;
   }
-  sortedGroups().forEach(g => board.appendChild(renderGroupCard(g)));
+  // Board order is just project.groups' own array order — set once at CSV-import time
+  // (via the column-mapping modal's group ordering) and adjustable afterward by
+  // dragging cards directly on the board. No auto-sort layered on top of it.
+  project.groups.forEach(g => board.appendChild(renderGroupCard(g)));
 }
 
 function renderDrawers() {
@@ -474,7 +465,7 @@ function renderPersonCard(person) {
       persist();
     };
 
-    sortedGroups().forEach(g => {
+    project.groups.forEach(g => {
       const row = el('div', { class: 'preference-row' });
       row.appendChild(el('span', { class: 'preference-group-name', text: g.name }));
       const select = el('select', { class: 'rank-select', attrs: { 'data-group-id': g.id } });
@@ -653,6 +644,26 @@ function attachSortables() {
       onEnd: handleDragEnd
     }));
   });
+
+  // Group cards themselves are reorderable directly on the board — a separate,
+  // single-container drag independent of the person-moving Sortables above. Board
+  // order has no auto-sort layered on it (see renderBoard), so this is the only way
+  // order changes once the CSV-import mapping has set it initially.
+  const board = document.getElementById('groups-board');
+  if (board.querySelector('.board-group-card')) {
+    sortables.push(Sortable.create(board, {
+      handle: '.card-row',
+      filter: '.icon-btn, input',
+      preventOnFilter: false,
+      animation: 150,
+      forceFallback: true,
+      onEnd: () => {
+        const orderedIds = Array.from(board.querySelectorAll(':scope > .board-group-card')).map(n => n.dataset.groupId);
+        project.groups = orderedIds.map(id => findGroup(id));
+        persist();
+      }
+    }));
+  }
 }
 
 // ---------- Auto-assign by preference (leaders are pre-determined and never touched) ----------
@@ -770,78 +781,288 @@ function findOrCreateGroupByName(name) {
   return group;
 }
 
+// ---------- CSV column-mapping modal ----------
+// Presents the CSV's headers so the user confirms/corrects what each one means before
+// anything is imported, rather than relying purely on auto-detection — most importantly
+// for group-ranking columns, where the CSV's column order doesn't necessarily match the
+// order groups should appear in (e.g. it can drift from the live Google Form's question
+// order — see project notes). csvMappingState holds the modal's working state while open.
+
+let csvMappingState = null; // { headers, lines, groupOrder: [{index, name}], groupSortable }
+
+function defaultMappingFromHeaders(headers) {
+  // Group columns are identified first and excluded from every other heuristic below —
+  // otherwise a bracketed group name that happens to contain a keyword (e.g. "[Wednesday
+  // Night - City Leadership & Services]" containing "leader") gets misclaimed as that
+  // single-purpose field instead of showing up as a group-ranking column.
+  const groupOrder = [];
+  const isGroupCol = new Set();
+  headers.forEach((h, i) => {
+    const m = h.match(/\[([^\]]+)\]/);
+    if (m) { groupOrder.push({ index: i, name: m[1].trim() }); isGroupCol.add(i); }
+  });
+  const find = (predicate) => headers.findIndex((h, i) => !isGroupCol.has(i) && predicate(h));
+
+  const nameIdx = find(h => h.toLowerCase() === 'name' || h.toLowerCase() === 'full name');
+  const firstIdx = find(h => h.toLowerCase().includes('first'));
+  const lastIdx = find(h => h.toLowerCase().includes('last'));
+  const phoneIdx = find(h => h.toLowerCase().includes('phone'));
+  const emailIdx = find(h => h.toLowerCase().includes('email'));
+  const availIdx = find(h => {
+    const lower = h.toLowerCase();
+    return lower.includes('available') || lower.includes('availability');
+  });
+  const commentsIdx = find(h => {
+    const lower = h.toLowerCase();
+    return lower.includes('comment') || lower.includes('question') || lower.includes('concern');
+  });
+  const nameMode = nameIdx !== -1 ? 'single' : (firstIdx !== -1 || lastIdx !== -1 ? 'split' : 'single');
+
+  return { nameMode, nameIdx, firstIdx, lastIdx, phoneIdx, emailIdx, availIdx, commentsIdx, groupOrder };
+}
+
+function populateHeaderSelect(select, headers, selectedIndex) {
+  select.innerHTML = '';
+  select.appendChild(el('option', { attrs: { value: '' }, text: '— None —' }));
+  headers.forEach((h, i) => {
+    select.appendChild(el('option', { attrs: { value: String(i) }, text: h }));
+  });
+  select.value = selectedIndex !== undefined && selectedIndex !== -1 ? String(selectedIndex) : '';
+}
+
+function mappingParseIdx(value) {
+  return value === '' ? -1 : parseInt(value, 10);
+}
+
+function mappingClaimedIndices() {
+  const claimed = new Set();
+  const nameMode = document.querySelector('input[name="name-mode"]:checked').value;
+  if (nameMode === 'single') {
+    const v = mappingParseIdx(document.getElementById('map-name').value);
+    if (v !== -1) claimed.add(v);
+  } else {
+    const f = mappingParseIdx(document.getElementById('map-first').value);
+    const l = mappingParseIdx(document.getElementById('map-last').value);
+    if (f !== -1) claimed.add(f);
+    if (l !== -1) claimed.add(l);
+  }
+  ['map-phone', 'map-email', 'map-availability', 'map-comments'].forEach(id => {
+    const v = mappingParseIdx(document.getElementById(id).value);
+    if (v !== -1) claimed.add(v);
+  });
+  csvMappingState.groupOrder.forEach(g => claimed.add(g.index));
+  return claimed;
+}
+
+function renderMappingAvailable() {
+  const claimed = mappingClaimedIndices();
+  const container = document.getElementById('mapping-available-list');
+  container.innerHTML = '';
+  let any = false;
+  csvMappingState.headers.forEach((h, i) => {
+    if (claimed.has(i)) return;
+    any = true;
+    const row = el('div', { class: 'mapping-available-row' });
+    row.appendChild(el('span', { class: 'mapping-available-text', text: h }));
+    const addBtn = el('button', { class: 'mapping-add-btn', text: '+ Add' });
+    addBtn.addEventListener('click', () => {
+      const m = h.match(/\[([^\]]+)\]/);
+      csvMappingState.groupOrder.push({ index: i, name: m ? m[1].trim() : h });
+      renderMappingAvailable();
+      renderMappingGroupList();
+    });
+    row.appendChild(addBtn);
+    container.appendChild(row);
+  });
+  if (!any) container.appendChild(el('div', { class: 'mapping-empty-hint', text: 'All columns are assigned.' }));
+}
+
+function renderMappingGroupList() {
+  const container = document.getElementById('mapping-group-list');
+  container.innerHTML = '';
+  csvMappingState.groupOrder.forEach(g => {
+    const row = el('div', { class: 'mapping-group-row', attrs: { 'data-col-index': String(g.index) } });
+    row.appendChild(el('span', { class: 'drag-handle', text: '⠿' }));
+    const nameInput = el('input', { class: 'inline-input mapping-group-name', attrs: { type: 'text' } });
+    nameInput.value = g.name;
+    nameInput.addEventListener('input', () => { g.name = nameInput.value; });
+    row.appendChild(nameInput);
+    const removeBtn = el('button', { class: 'icon-btn', text: '✕', attrs: { title: 'Remove' } });
+    removeBtn.addEventListener('click', () => {
+      csvMappingState.groupOrder = csvMappingState.groupOrder.filter(x => x.index !== g.index);
+      renderMappingGroupList();
+      renderMappingAvailable();
+    });
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+  });
+
+  if (csvMappingState.groupSortable) csvMappingState.groupSortable.destroy();
+  csvMappingState.groupSortable = Sortable.create(container, {
+    animation: 150,
+    handle: '.drag-handle',
+    onEnd: () => {
+      const domOrder = Array.from(container.querySelectorAll('.mapping-group-row')).map(row => parseInt(row.dataset.colIndex, 10));
+      csvMappingState.groupOrder = domOrder.map(idx => csvMappingState.groupOrder.find(g => g.index === idx));
+    }
+  });
+}
+
+function openCsvMappingModal(lines) {
+  const headers = parseCSVRow(lines[0]);
+  const defaults = defaultMappingFromHeaders(headers);
+  csvMappingState = { headers, lines, groupOrder: defaults.groupOrder, groupSortable: null };
+
+  document.querySelector(`input[name="name-mode"][value="${defaults.nameMode}"]`).checked = true;
+  document.getElementById('name-single-row').hidden = defaults.nameMode !== 'single';
+  document.getElementById('name-split-row').hidden = defaults.nameMode !== 'split';
+
+  populateHeaderSelect(document.getElementById('map-name'), headers, defaults.nameIdx);
+  populateHeaderSelect(document.getElementById('map-first'), headers, defaults.firstIdx);
+  populateHeaderSelect(document.getElementById('map-last'), headers, defaults.lastIdx);
+  populateHeaderSelect(document.getElementById('map-phone'), headers, defaults.phoneIdx);
+  populateHeaderSelect(document.getElementById('map-email'), headers, defaults.emailIdx);
+  populateHeaderSelect(document.getElementById('map-availability'), headers, defaults.availIdx);
+  populateHeaderSelect(document.getElementById('map-comments'), headers, defaults.commentsIdx);
+
+  document.getElementById('mapping-error').hidden = true;
+  renderMappingAvailable();
+  renderMappingGroupList();
+  document.getElementById('csv-mapping-modal').hidden = false;
+}
+
+function closeCsvMappingModal() {
+  if (csvMappingState && csvMappingState.groupSortable) csvMappingState.groupSortable.destroy();
+  csvMappingState = null;
+  document.getElementById('csv-mapping-modal').hidden = true;
+}
+
+function wireCsvMappingModal() {
+  document.querySelectorAll('input[name="name-mode"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const mode = document.querySelector('input[name="name-mode"]:checked').value;
+      document.getElementById('name-single-row').hidden = mode !== 'single';
+      document.getElementById('name-split-row').hidden = mode !== 'split';
+      renderMappingAvailable();
+    });
+  });
+  ['map-name', 'map-first', 'map-last', 'map-phone', 'map-email', 'map-availability', 'map-comments'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderMappingAvailable);
+  });
+
+  document.getElementById('btn-csv-mapping-close').addEventListener('click', closeCsvMappingModal);
+  document.getElementById('btn-csv-mapping-cancel').addEventListener('click', closeCsvMappingModal);
+  document.getElementById('csv-mapping-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'csv-mapping-modal') closeCsvMappingModal();
+  });
+
+  document.getElementById('btn-csv-mapping-import').addEventListener('click', () => {
+    const errorEl = document.getElementById('mapping-error');
+    const nameMode = document.querySelector('input[name="name-mode"]:checked').value;
+    const nameIdx = nameMode === 'single' ? mappingParseIdx(document.getElementById('map-name').value) : -1;
+    const firstIdx = nameMode === 'split' ? mappingParseIdx(document.getElementById('map-first').value) : -1;
+    const lastIdx = nameMode === 'split' ? mappingParseIdx(document.getElementById('map-last').value) : -1;
+
+    if (nameMode === 'single' && nameIdx === -1) {
+      errorEl.textContent = 'Choose a Name column (or switch to separate First/Last columns).';
+      errorEl.hidden = false;
+      return;
+    }
+    if (nameMode === 'split' && firstIdx === -1 && lastIdx === -1) {
+      errorEl.textContent = 'Choose at least a First or Last name column.';
+      errorEl.hidden = false;
+      return;
+    }
+    if (csvMappingState.groupOrder.length === 0) {
+      errorEl.textContent = 'Add at least one column as a group ranking.';
+      errorEl.hidden = false;
+      return;
+    }
+
+    const mapping = {
+      nameMode, nameIdx, firstIdx, lastIdx,
+      phoneIdx: mappingParseIdx(document.getElementById('map-phone').value),
+      emailIdx: mappingParseIdx(document.getElementById('map-email').value),
+      availIdx: mappingParseIdx(document.getElementById('map-availability').value),
+      commentsIdx: mappingParseIdx(document.getElementById('map-comments').value),
+      groupOrder: csvMappingState.groupOrder.map(g => ({ index: g.index, name: g.name.trim() || `Group ${g.index + 1}` }))
+    };
+    const lines = csvMappingState.lines;
+    closeCsvMappingModal();
+    runSignupImport(lines, mapping);
+  });
+}
+
 function importSignupCSVFile(file) {
   const reader = new FileReader();
   reader.onload = () => {
     const lines = reader.result.split(/\r?\n/).filter(l => l.trim().length > 0);
     if (lines.length < 2) { showToast('That file has no data rows.'); return; }
-    const headers = parseCSVRow(lines[0]);
-
-    const nameIdx = headers.findIndex(h => h.toLowerCase() === 'name' || h.toLowerCase() === 'full name');
-    const emailIdx = headers.findIndex(h => h.toLowerCase().includes('email'));
-    const phoneIdx = headers.findIndex(h => h.toLowerCase().includes('phone'));
-    const availIdx = headers.findIndex(h => h.toLowerCase().includes('available') || h.toLowerCase().includes('availability'));
-    const leaderIdx = headers.findIndex(h => h.toLowerCase().includes('leader'));
-    const commentsIdx = headers.findIndex(h => {
-      const lower = h.toLowerCase();
-      return lower.includes('comment') || lower.includes('question') || lower.includes('concern');
-    });
-
-    const groupCols = []; // { index, group }
-    headers.forEach((h, i) => {
-      const m = h.match(/\[([^\]]+)\]/);
-      if (m) groupCols.push({ index: i, group: findOrCreateGroupByName(m[1].trim()) });
-    });
-
-    if (nameIdx === -1) { showToast('Could not find a "Name" column in that CSV.'); return; }
-    if (groupCols.length === 0) { showToast('Could not find any group-preference columns (expected headers containing "[Group Name]").'); return; }
-
-    let imported = 0;
-    let merged = 0;
-
-    lines.slice(1).forEach(line => {
-      const cells = parseCSVRow(line);
-      const fullName = cells[nameIdx] || '';
-      if (!fullName) return;
-      const spaceIdx = fullName.indexOf(' ');
-      const first = spaceIdx === -1 ? fullName : fullName.slice(0, spaceIdx);
-      const last = spaceIdx === -1 ? '' : fullName.slice(spaceIdx + 1).trim();
-      const email = emailIdx !== -1 ? (cells[emailIdx] || '') : '';
-      const phone = phoneIdx !== -1 ? (cells[phoneIdx] || '') : '';
-      const availability = availIdx !== -1 ? parseAvailability(cells[availIdx], ',') : [];
-      const isLeader = leaderIdx !== -1 && ['true', '1', 'yes', 'y'].includes((cells[leaderIdx] || '').toLowerCase());
-      const comments = commentsIdx !== -1 ? (cells[commentsIdx] || '') : '';
-
-      const ranked = groupCols
-        .map(({ index, group }) => {
-          const raw = cells[index] || '';
-          const m = raw.match(/^(\d+)/);
-          return m ? { group, rank: parseInt(m[1], 10) } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.rank - b.rank);
-      const preferences = ranked.map(r => r.group.id);
-
-      const existing = email ? getAllPeople().find(p => p.email && p.email.toLowerCase() === email.toLowerCase()) : null;
-      if (existing) {
-        existing.first = first || existing.first;
-        existing.last = last || existing.last;
-        existing.phone = phone || existing.phone;
-        existing.availability = availability.length > 0 ? availability : existing.availability;
-        existing.preferences = preferences;
-        existing.comments = comments || existing.comments;
-        merged++;
-      } else {
-        const person = { id: uid(), first, last, phone, email, isLeader, availability, preferences, communityBuilder: false, comments };
-        (isLeader ? project.leaders : project.participants).push(person);
-        imported++;
-      }
-    });
-
-    render();
-    showToast(`Imported ${imported} new, merged ${merged} existing. ${groupCols.length} groups on the board.`);
+    openCsvMappingModal(lines);
   };
   reader.readAsText(file);
+}
+
+function runSignupImport(lines, mapping) {
+  // Existing (name-matched) groups keep their current board position untouched; only
+  // genuinely new group columns get created, appended in the order set in the modal.
+  const groupCols = mapping.groupOrder.map(g => ({ index: g.index, group: findOrCreateGroupByName(g.name) }));
+
+  let imported = 0;
+  let merged = 0;
+
+  lines.slice(1).forEach(line => {
+    const cells = parseCSVRow(line);
+    let first, last;
+    if (mapping.nameMode === 'single') {
+      const fullName = mapping.nameIdx !== -1 ? (cells[mapping.nameIdx] || '') : '';
+      if (!fullName) return;
+      const spaceIdx = fullName.indexOf(' ');
+      first = spaceIdx === -1 ? fullName : fullName.slice(0, spaceIdx);
+      last = spaceIdx === -1 ? '' : fullName.slice(spaceIdx + 1).trim();
+    } else {
+      first = mapping.firstIdx !== -1 ? (cells[mapping.firstIdx] || '') : '';
+      last = mapping.lastIdx !== -1 ? (cells[mapping.lastIdx] || '') : '';
+      if (!first && !last) return;
+    }
+
+    const email = mapping.emailIdx !== -1 ? (cells[mapping.emailIdx] || '') : '';
+    const phone = mapping.phoneIdx !== -1 ? (cells[mapping.phoneIdx] || '') : '';
+    const availability = mapping.availIdx !== -1 ? parseAvailability(cells[mapping.availIdx], ',') : [];
+    const comments = mapping.commentsIdx !== -1 ? (cells[mapping.commentsIdx] || '') : '';
+
+    const ranked = groupCols
+      .map(({ index, group }) => {
+        const raw = cells[index] || '';
+        // Not anchored to the start — handles "1st Choice", "Choice 1", "Rank: 3", etc.,
+        // taking the first run of digits found anywhere in the cell.
+        const m = raw.match(/(\d+)/);
+        return m ? { group, rank: parseInt(m[1], 10) } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.rank - b.rank);
+    const preferences = ranked.map(r => r.group.id);
+
+    const existing = email ? getAllPeople().find(p => p.email && p.email.toLowerCase() === email.toLowerCase()) : null;
+    if (existing) {
+      existing.first = first || existing.first;
+      existing.last = last || existing.last;
+      existing.phone = phone || existing.phone;
+      existing.availability = availability.length > 0 ? availability : existing.availability;
+      existing.preferences = preferences;
+      existing.comments = comments || existing.comments;
+      merged++;
+    } else {
+      // Sign-up rows are always participants — leaders are user-created, never
+      // detected from the form itself (there's no "Is Leader" mapping).
+      const person = { id: uid(), first, last, phone, email, isLeader: false, availability, preferences, communityBuilder: false, comments };
+      project.participants.push(person);
+      imported++;
+    }
+  });
+
+  render();
+  showToast(`Imported ${imported} new, merged ${merged} existing. ${groupCols.length} groups mapped.`);
 }
 
 // ---------- JSON export / import ----------
@@ -853,7 +1074,7 @@ function exportJSON() {
 
 function exportCSV() {
   const rows = [['group', 'first', 'last', 'phone', 'email', 'isLeader']];
-  sortedGroups().forEach(g => {
+  project.groups.forEach(g => {
     g.personIds.forEach(pid => {
       const p = findPerson(pid);
       if (!p) return;
@@ -1012,6 +1233,7 @@ wireToolbar();
 wireKeyboardShortcuts();
 wireHelpModal();
 wireHighlightBanner();
+wireCsvMappingModal();
 wirePersonExpandToggle();
 
 const autosaved = localStorage.getItem(AUTOSAVE_KEY);

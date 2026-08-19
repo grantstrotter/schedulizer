@@ -33,12 +33,15 @@ function parseCSVLine(line) {
 
 function parseAvailability(raw, delimiter = '|') {
   if (!raw) return [];
-  const abbrevToDay = {};
-  DAYS.forEach(d => { abbrevToDay[DAY_ABBR[d].toLowerCase()] = d; });
+  // Each day's first two letters are unique (su/mo/tu/we/th/fr/sa), so matching just
+  // that prefix accepts full names, the app's own abbreviations, and any other
+  // reasonable spelling ("Weds", "Thurs", etc.) without needing an exact-match list.
+  const prefixToDay = {};
+  DAYS.forEach(d => { prefixToDay[d.slice(0, 2)] = d; });
   return raw.split(delimiter)
     .map(s => s.trim().toLowerCase())
     .filter(Boolean)
-    .map(token => (DAYS.includes(token) ? token : abbrevToDay[token]))
+    .map(token => prefixToDay[token.slice(0, 2)])
     .filter(Boolean);
 }
 

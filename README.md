@@ -89,24 +89,28 @@ participant concept here at all.
 - **Import Sign-Up (CSV)**: built specifically for a Google Forms **Multiple-choice
   grid** question — each group as a grid row, choices labeled `1st Choice`,
   `2nd Choice`, etc. as grid columns. (Not Forms' separate dedicated "Ranking" question
-  type — that exports differently and won't parse here.) One column per group row,
-  headers containing the group name in brackets (e.g. `Which groups would you prefer to
-  do? [Wednesday Night - Young Adults]`). One group is created per such column, even if
-  nobody ranked it. If a day name appears anywhere in the group's name, that's parsed
-  out for availability checking.
-- **Sign-up rows**: each row is a person. Expects a `Name` column (split on the first
-  space into first/last), and optionally `Email`, `Phone`, an availability column
-  (comma-separated day names), and a free-text column whose header contains "comment",
-  "question", or "concern" (e.g. "Any comments, questions, or unique scheduling
-  concerns?") — the last becomes their editable Comments field. CSV parsing here is
-  quote-aware (unlike the Schedule tool's plain comma split), so commas inside a quoted
-  response are handled correctly. Importing again adds new people and merges into an
-  existing person by matching email (refreshing their comments too), rather than
+  type — that exports differently and won't parse here.) Choosing a file opens a
+  **Map Sign-Up CSV Columns** dialog before anything is imported — it shows every
+  header and lets you confirm or correct what each one means, since a CSV's column
+  order doesn't always match what you'd expect (e.g. it can drift from the live form's
+  current question order).
+- **Column mapping dialog**: pick the `Name` column (or separate First/Last columns),
+  and optionally Phone, Email, Availability (comma-separated day names), and Comments —
+  sign-up rows always come in as participants, since leaders are added by hand rather
+  than detected from the form. For **Group Rankings**, add each column that represents
+  a group choice and drag to set their order — that becomes the board's group order, with no
+  auto-sorting layered on it afterward (adjust it later by dragging group cards
+  directly on the board). A column's `[Bracket]` text, if present, pre-fills its group
+  name; edit it if you want something different. CSV parsing here is quote-aware
+  (unlike the Schedule tool's plain comma split), so commas inside a quoted response
+  are handled correctly. Re-importing leaves existing (name-matched) groups exactly
+  where they are and only appends genuinely new ones; a row whose email matches an
+  existing person merges into them (refreshing their comments too) rather than
   duplicating them.
 - **Placing people**: drag a leader or participant from a drawer straight into a group
   (no day grid here — groups sit side-by-side since their night was already decided in
-  the Schedule tool, sorted by that day then alphabetically). Availability is checked
-  against the group's parsed day, same as
+  the Schedule tool). Drag a group card by its title bar to reorder it on the board.
+  Availability is checked against the group's parsed day, same as
   the Schedule tool.
 - **Preference match**: each placed person shows a colored number badge for their
   current group's rank in their preferences — blue for a great match, shading through

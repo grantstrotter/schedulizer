@@ -652,3 +652,138 @@ button:hover { background: #eef1f5; }
   font-size: 0.85em;
   font-family: inherit;
 }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- CSV column-mapping modal ---------- */
+
+.csv-mapping-content {
+  max-width: 720px;
+}
+
+.mapping-section {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.mapping-section:last-of-type {
+  border-bottom: none;
+}
+.mapping-section h3 {
+  margin: 0 0 8px;
+}
+
+.mapping-radio {
+  display: block;
+  font-size: 0.9em;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.mapping-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.mapping-row[hidden] {
+  display: none;
+}
+.mapping-label {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  min-width: 90px;
+}
+.mapping-row select {
+  flex: 1;
+  min-width: 160px;
+}
+
+.mapping-hint {
+  font-size: 0.85em !important;
+  color: var(--text-muted) !important;
+}
+.mapping-hint-indent {
+  margin-left: 98px !important; /* aligns with the select column: label min-width (90px) + row gap (8px) */
+}
+
+.mapping-columns {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+.mapping-pool, .mapping-groups {
+  flex: 1;
+  min-width: 0;
+}
+.mapping-pool-label {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.mapping-available-list, .mapping-group-list {
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 6px;
+  min-height: 44px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.mapping-available-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  font-size: 0.85em;
+}
+.mapping-available-row:hover {
+  background: var(--bg);
+  border-radius: 4px;
+}
+.mapping-available-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mapping-add-btn {
+  font-size: 0.8em;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.mapping-empty-hint {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  padding: 6px;
+  font-style: italic;
+}
+
+.mapping-group-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+}
+.mapping-group-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85em;
+}
+
+.mapping-error {
+  color: var(--danger);
+  font-size: 0.9em;
+  margin-top: 10px;
+  font-weight: 600;
+}

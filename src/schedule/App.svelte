@@ -1,8 +1,8 @@
 <script>
   import { onMount } from 'svelte';
   import { tick } from 'svelte';
+  import { dragHandleZone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { DAYS } from '../lib/constants.js';
-  import { sortable } from '../lib/sortable.js';
   import { wirePersonExpandToggle } from '../lib/expandToggle.js';
   import Toast from '../lib/Toast.svelte';
   import EmptyState from '../lib/EmptyState.svelte';
@@ -10,11 +10,12 @@
   import DayColumn from './DayColumn.svelte';
   import GroupCard from './GroupCard.svelte';
   import PersonCard from './PersonCard.svelte';
-  import { boardSortableOptions, cancelActiveDrag } from './dragdrop.js';
+  import { GROUP_ZONE_TYPE, PERSON_ZONE_TYPE, realItems } from './dragdrop.js';
   import {
     project, started, isGroupPlaced, isPersonPlaced,
     newProject, importJSONFile, importCSVFile, tryResumeAutosave,
-    addGroup, addLeader, exportJSON, exportCSV
+    addGroup, addLeader, exportJSON, exportCSV,
+    setDrawerGroups, setDrawerLeaders
   } from './store.js';
 
   let helpOpen = false;
@@ -27,10 +28,6 @@
   });
 
   function handleKeydown(e) {
-    if (e.key === 'Escape') {
-      cancelActiveDrag();
-      return;
-    }
     if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 's') return;
     e.preventDefault();
     if ($project) exportJSON();
@@ -57,6 +54,30 @@
 
   $: unplacedGroups = $project ? $project.groups.filter(g => !isGroupPlaced($project, g.id)) : [];
   $: unplacedLeaders = $project ? $project.leaders.filter(p => !isPersonPlaced($project, p.id)) : [];
+
+  // Drawers always accept unconditionally — no availability rule ever blocks unscheduling
+  // a group or leader back to its drawer.
+  let displayGroups = [];
+  let displayLeaders = [];
+  $: displayGroups = unplacedGroups;
+  $: displayLeaders = unplacedLeaders;
+
+  function handleGroupsConsider(e) {
+    displayGroups = e.detail.items;
+  }
+  function handleGroupsFinalize(e) {
+    const proposed = realItems(e.detail.items, SHADOW_ITEM_MARKER_PROPERTY_NAME);
+    displayGroups = proposed;
+    setDrawerGroups(proposed.map(g => g.id));
+  }
+  function handleLeadersConsider(e) {
+    displayLeaders = e.detail.items;
+  }
+  function handleLeadersFinalize(e) {
+    const proposed = realItems(e.detail.items, SHADOW_ITEM_MARKER_PROPERTY_NAME);
+    displayLeaders = proposed;
+    setDrawerLeaders(proposed.map(p => p.id));
+  }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -111,8 +132,15 @@
           Groups <span class="count">({unplacedGroups.length})</span>
           <button class="drawer-add-btn" on:click|preventDefault={handleAddGroup}>+ Add Group</button>
         </summary>
-        <div class="drawer-list" id="drawer-groups" data-container="groups-drawer" use:sortable={boardSortableOptions(true)}>
-          {#each unplacedGroups as group (group.id)}
+        <div
+          class="drawer-list"
+          id="drawer-groups"
+          data-container="groups-drawer"
+          use:dragHandleZone={{ items: displayGroups, type: GROUP_ZONE_TYPE, flipDurationMs: 150, useCursorForDetection: true }}
+          on:consider={handleGroupsConsider}
+          on:finalize={handleGroupsFinalize}
+        >
+          {#each displayGroups as group (`${group.id}${group[SHADOW_ITEM_MARKER_PROPERTY_NAME] ? '_' + group[SHADOW_ITEM_MARKER_PROPERTY_NAME] : ''}`)}
             <GroupCard {group} />
           {/each}
         </div>
@@ -122,8 +150,16 @@
           Leaders 🎯 <span class="count">({unplacedLeaders.length})</span>
           <button class="drawer-add-btn" on:click|preventDefault={handleAddLeader}>+ Add Leader</button>
         </summary>
-        <div class="drawer-list" id="drawer-leaders" data-container="people-drawer" data-day="drawer" use:sortable={boardSortableOptions(false)}>
-          {#each unplacedLeaders as person (person.id)}
+        <div
+          class="drawer-list"
+          id="drawer-leaders"
+          data-container="people-drawer"
+          data-day="drawer"
+          use:dragHandleZone={{ items: displayLeaders, type: PERSON_ZONE_TYPE, flipDurationMs: 150, useCursorForDetection: true }}
+          on:consider={handleLeadersConsider}
+          on:finalize={handleLeadersFinalize}
+        >
+          {#each displayLeaders as person (person.id)}
             <PersonCard {person} />
           {/each}
         </div>
@@ -141,9 +177,8 @@
 
   <h3>Days</h3>
   <p>Seven columns across the top, one per day, each with a <strong>Groups</strong>
-    section and a <strong>Leaders</strong> section. You can drop a group or leader
-    anywhere in that day's column — not just its matching section — and it'll land
-    in the right spot.</p>
+    section and a <strong>Leaders</strong> section — drop a group in the Groups section
+    and a leader in the Leaders section.</p>
 
   <h3>Groups</h3>
   <p><strong>+ Add Group</strong> creates one in the Groups drawer below the days.

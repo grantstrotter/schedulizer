@@ -1,8 +1,10 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { sortable } from '../lib/sortable.js';
+  import { dragHandle, dragHandleZone } from 'svelte-dnd-action';
   import { parseCSVRow, defaultMappingFromHeaders } from './csvMapping.js';
   import { runSignupImport } from './store.js';
+
+  const MAPPING_GROUP_ORDER_TYPE = 'csv-mapping-group-order';
 
   export let lines;
 
@@ -19,7 +21,7 @@
   let emailIdx = defaults.emailIdx;
   let availIdx = defaults.availIdx;
   let commentsIdx = defaults.commentsIdx;
-  let groupOrder = defaults.groupOrder.slice();
+  let groupOrder = defaults.groupOrder.map(g => ({ ...g, id: g.index }));
   let error = '';
 
   function close() {
@@ -43,16 +45,19 @@
 
   function addGroupColumn(i, h) {
     const m = h.match(/\[([^\]]+)\]/);
-    groupOrder = [...groupOrder, { index: i, name: m ? m[1].trim() : h }];
+    groupOrder = [...groupOrder, { index: i, id: i, name: m ? m[1].trim() : h }];
   }
 
   function removeGroupColumn(index) {
     groupOrder = groupOrder.filter(g => g.index !== index);
   }
 
-  function reorderGroupOrder(node) {
-    const domOrder = Array.from(node.querySelectorAll('.mapping-group-row')).map(row => parseInt(row.dataset.colIndex, 10));
-    groupOrder = domOrder.map(idx => groupOrder.find(g => g.index === idx));
+  function handleGroupOrderConsider(e) {
+    groupOrder = e.detail.items;
+  }
+
+  function handleGroupOrderFinalize(e) {
+    groupOrder = e.detail.items;
   }
 
   function handleImport() {
@@ -164,10 +169,15 @@
           </div>
           <div class="mapping-groups">
             <div class="mapping-pool-label">Group order</div>
-            <div class="mapping-group-list" use:sortable={{ animation: 150, handle: '.drag-handle', onEnd: (evt) => reorderGroupOrder(evt.to) }}>
-              {#each groupOrder as g (g.index)}
+            <div
+              class="mapping-group-list"
+              use:dragHandleZone={{ items: groupOrder, type: MAPPING_GROUP_ORDER_TYPE, flipDurationMs: 150, useCursorForDetection: true }}
+              on:consider={handleGroupOrderConsider}
+              on:finalize={handleGroupOrderFinalize}
+            >
+              {#each groupOrder as g (g.id)}
                 <div class="mapping-group-row" data-col-index={g.index}>
-                  <span class="drag-handle">⠿</span>
+                  <span class="drag-handle" use:dragHandle aria-label="Drag to reorder {g.name}">⠿</span>
                   <input class="inline-input mapping-group-name" type="text" bind:value={g.name} />
                   <button class="icon-btn" title="Remove" on:click={() => removeGroupColumn(g.index)}>✕</button>
                 </div>

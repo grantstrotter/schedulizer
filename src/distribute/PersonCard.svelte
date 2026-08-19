@@ -1,4 +1,5 @@
 <script>
+  import { dragHandle } from 'svelte-dnd-action';
   import { DAYS, DAY_ABBR } from '../lib/constants.js';
   import {
     project, highlightGroupId, findGroup, getPersonGroup, matchInfo, needsAvailabilityReview,
@@ -26,7 +27,7 @@
 </script>
 
 <details class="person-card {candidateTier ? 'candidate-t' + candidateTier : ''}" data-person-id={person.id} data-type="person">
-  <summary>
+  <summary use:dragHandle aria-label="Drag to move {fullName}">
     <span class="drag-handle">⠿ </span>
     <span class="person-name">{fullName}</span>
     {#if person.isLeader}<span class="leader-emoji">🎯</span>{/if}
@@ -40,7 +41,7 @@
     {#if needsReview}
       <span class="needs-review-badge" title="Needs review: Outside of stated availability">?</span>
     {/if}
-    <button class="icon-btn" title="Delete person" on:click|preventDefault={() => deletePerson(person.id, `${person.first} ${person.last}`.trim())}>✕</button>
+    <button class="icon-btn" title="Delete person" on:mousedown|stopPropagation on:touchstart|stopPropagation on:click|preventDefault={() => deletePerson(person.id, `${person.first} ${person.last}`.trim())}>✕</button>
     {#if candidateTier}
       <span class="candidate-rank-badge match-t{candidateTier}">{candidateRank + 1}</span>
     {/if}

@@ -223,11 +223,41 @@ export function setGroupRank(personId, groupId, rank) {
   });
 }
 
-// Called after a drag settles, to resync each group's personIds and the leader/participant
-// arrays from the DOM order Sortable just produced. `readDom` is supplied by the component
-// layer since it needs direct DOM queries against the rendered board.
-export function syncModelFromDom(readDom) {
-  mutate(p => { readDom(p); });
+// Called when a group's people-list dnd-zone finalizes a drop it has accepted (see
+// dragdrop.js) — personIds is the zone's full, final membership in display order.
+// Anyone arriving from elsewhere (another group, a drawer) is pulled out of their old
+// spot first.
+export function setGroupMembership(groupId, personIds) {
+  mutate(p => {
+    personIds.forEach(id => removePersonFromAllPlacements(p, id));
+    findGroup(p, groupId).personIds = personIds;
+  });
+}
+
+function reorderSubsetToMatch(list, orderedIds) {
+  if (orderedIds.length === 0) return list;
+  const idSet = new Set(orderedIds);
+  const rest = list.filter(x => !idSet.has(x.id));
+  const ordered = orderedIds.map(id => list.find(x => x.id === id)).filter(Boolean);
+  return [...ordered, ...rest];
+}
+
+// Called when a drawer's dnd-zone finalizes a drop it has accepted. personIds is that
+// drawer's full, final unplaced membership in display order — anyone arriving from a
+// group (or the other drawer) is pulled out of their old placement and has their
+// leader/participant flag flipped to match which drawer they landed in.
+export function setDrawerMembership(isLeaderDrawer, personIds) {
+  mutate(p => {
+    personIds.forEach(id => {
+      removePersonFromAllPlacements(p, id);
+      findPerson(p, id).isLeader = isLeaderDrawer;
+    });
+    const allPeople = getAllPeople(p);
+    const leaders = allPeople.filter(x => x.isLeader);
+    const participants = allPeople.filter(x => !x.isLeader);
+    p.leaders = isLeaderDrawer ? reorderSubsetToMatch(leaders, personIds) : leaders;
+    p.participants = !isLeaderDrawer ? reorderSubsetToMatch(participants, personIds) : participants;
+  });
 }
 
 export function ordinal(n) {

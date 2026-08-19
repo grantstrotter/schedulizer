@@ -168,11 +168,41 @@ export function togglePersonAvailability(personId, day) {
   });
 }
 
-// Called after a drag settles, to resync days[].groupIds/personIds and each group's
-// personIds from the DOM order Sortable just produced. `readDom` is supplied by the
-// component layer since it needs direct DOM queries against the rendered board.
-export function syncModelFromDom(readDom) {
-  mutate(p => { readDom(p); });
+// Called when a day's groups-list dnd-zone finalizes a drop it has accepted — groupIds is
+// that day's full, final list in display order. Anyone arriving from elsewhere (another
+// day, the drawer) is pulled out of their old placement first.
+export function setDayGroups(day, groupIds) {
+  mutate(p => {
+    groupIds.forEach(id => removeGroupFromAllPlacements(p, id));
+    p.days[day].groupIds = groupIds;
+  });
+}
+
+// Same idea for a day's own people-list (leaders scheduled directly on that day, not
+// nested under a group).
+export function setDayPeople(day, personIds) {
+  mutate(p => {
+    personIds.forEach(id => removePersonFromAllPlacements(p, id));
+    p.days[day].personIds = personIds;
+  });
+}
+
+// A group's nested people-list (leaders placed under that specific group).
+export function setGroupPeople(groupId, personIds) {
+  mutate(p => {
+    personIds.forEach(id => removePersonFromAllPlacements(p, id));
+    findGroup(p, groupId).personIds = personIds;
+  });
+}
+
+// The two drawers hold whatever's left unplaced — dropping into one just needs to clear
+// wherever the arriving item used to be; "unplaced" itself is derived, not stored.
+export function setDrawerGroups(groupIds) {
+  mutate(p => { groupIds.forEach(id => removeGroupFromAllPlacements(p, id)); });
+}
+
+export function setDrawerLeaders(personIds) {
+  mutate(p => { personIds.forEach(id => removePersonFromAllPlacements(p, id)); });
 }
 
 export function exportJSON() {

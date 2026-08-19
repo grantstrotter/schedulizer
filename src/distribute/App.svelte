@@ -1,6 +1,6 @@
 <script>
   import { onMount, tick } from 'svelte';
-  import { sortable } from '../lib/sortable.js';
+  import { dragHandleZone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
   import { wirePersonExpandToggle } from '../lib/expandToggle.js';
   import Toast from '../lib/Toast.svelte';
   import EmptyState from '../lib/EmptyState.svelte';
@@ -8,12 +8,12 @@
   import GroupCard from './GroupCard.svelte';
   import PersonCard from './PersonCard.svelte';
   import CsvMappingModal from './CsvMappingModal.svelte';
-  import { groupBoardSortableOptions, personSortableOptions, cancelActiveDrag } from './dragdrop.js';
+  import { PERSON_ZONE_TYPE, realItems } from './dragdrop.js';
   import {
     project, started, highlightGroupId, isPersonPlaced, ordinal, maxPreferenceRank,
     newProject, importJSONFile, tryResumeAutosave, readSignupCSVFile,
     addLeader, addParticipant, exportJSON, exportCSV,
-    assignFirstChoices, fillUnderMinimumGroupsAtRank, reorderGroups
+    assignFirstChoices, fillUnderMinimumGroupsAtRank, reorderGroups, setDrawerMembership
   } from './store.js';
 
   let helpOpen = false;
@@ -29,7 +29,6 @@
 
   function handleKeydown(e) {
     if (e.key === 'Escape') {
-      cancelActiveDrag();
       if ($highlightGroupId) highlightGroupId.set(null);
       return;
     }
@@ -69,8 +68,48 @@
     else if (value) fillUnderMinimumGroupsAtRank(parseInt(value, 10));
   }
 
+  // svelte-dnd-action owns this local array during a drag (via consider), then we commit
+  // the final order back to the store on finalize. $project.groups stays the source of
+  // truth otherwise — this mirrors it, it doesn't replace it.
+  let displayGroups = [];
+  $: if ($project) displayGroups = $project.groups;
+
+  function handleGroupsConsider(e) {
+    displayGroups = e.detail.items;
+  }
+
+  function handleGroupsFinalize(e) {
+    displayGroups = e.detail.items;
+    reorderGroups(displayGroups.map(g => g.id));
+  }
+
   $: unplacedLeaders = $project ? $project.leaders.filter(p => !isPersonPlaced($project, p.id)) : [];
   $: unplacedParticipants = $project ? $project.participants.filter(p => !isPersonPlaced($project, p.id)) : [];
+
+  // Drawers always accept any person unconditionally — no availability rule ever blocks
+  // going back to a drawer, so unlike GroupCard there's nothing to veto here.
+  let displayLeaders = [];
+  let displayParticipants = [];
+  $: displayLeaders = unplacedLeaders;
+  $: displayParticipants = unplacedParticipants;
+
+  function handleLeadersConsider(e) {
+    displayLeaders = e.detail.items;
+  }
+  function handleLeadersFinalize(e) {
+    const proposed = realItems(e.detail.items, SHADOW_ITEM_MARKER_PROPERTY_NAME);
+    displayLeaders = proposed;
+    setDrawerMembership(true, proposed.map(p => p.id));
+  }
+  function handleParticipantsConsider(e) {
+    displayParticipants = e.detail.items;
+  }
+  function handleParticipantsFinalize(e) {
+    const proposed = realItems(e.detail.items, SHADOW_ITEM_MARKER_PROPERTY_NAME);
+    displayParticipants = proposed;
+    setDrawerMembership(false, proposed.map(p => p.id));
+  }
+
   $: maxRank = $project ? maxPreferenceRank($project) : 0;
   $: highlightedGroupName = $project && $highlightGroupId ? $project.groups.find(g => g.id === $highlightGroupId)?.name : null;
 </script>
@@ -125,15 +164,21 @@
       {/if}
     </div>
 
-    <main class="groups-board" id="groups-board" use:sortable={groupBoardSortableOptions(reorderGroups)}>
-      {#if $project.groups.length === 0}
-        <div class="board-empty-hint">No groups yet — click "Import Sign-Up (CSV)…" above to derive groups from your sign-up form (or open a project file that already has them).</div>
-      {:else}
-        {#each $project.groups as group (group.id)}
+    {#if $project.groups.length === 0}
+      <div class="groups-board"><div class="board-empty-hint">No groups yet — click "Import Sign-Up (CSV)…" above to derive groups from your sign-up form (or open a project file that already has them).</div></div>
+    {:else}
+      <main
+        class="groups-board"
+        id="groups-board"
+        use:dragHandleZone={{ items: displayGroups, flipDurationMs: 150, useCursorForDetection: true }}
+        on:consider={handleGroupsConsider}
+        on:finalize={handleGroupsFinalize}
+      >
+        {#each displayGroups as group (`${group.id}${group[SHADOW_ITEM_MARKER_PROPERTY_NAME] ? '_' + group[SHADOW_ITEM_MARKER_PROPERTY_NAME] : ''}`)}
           <GroupCard {group} />
         {/each}
-      {/if}
-    </main>
+      </main>
+    {/if}
 
     <section class="drawers" id="drawers">
       <details class="drawer" open>
@@ -141,8 +186,15 @@
           Leaders 🎯 <span class="count">({unplacedLeaders.length})</span>
           <button class="drawer-add-btn" on:click|preventDefault={handleAddLeader}>+ Add Leader</button>
         </summary>
-        <div class="drawer-list" id="drawer-leaders" data-container="people-drawer" use:sortable={personSortableOptions()}>
-          {#each unplacedLeaders as person (person.id)}
+        <div
+          class="drawer-list"
+          id="drawer-leaders"
+          data-container="people-drawer"
+          use:dragHandleZone={{ items: displayLeaders, type: PERSON_ZONE_TYPE, flipDurationMs: 150, useCursorForDetection: true }}
+          on:consider={handleLeadersConsider}
+          on:finalize={handleLeadersFinalize}
+        >
+          {#each displayLeaders as person (person.id)}
             <PersonCard {person} />
           {/each}
         </div>
@@ -152,8 +204,15 @@
           Unassigned Participants <span class="count">({unplacedParticipants.length})</span>
           <button class="drawer-add-btn" on:click|preventDefault={handleAddParticipant}>+ Add Participant</button>
         </summary>
-        <div class="drawer-list" id="drawer-participants" data-container="people-drawer" use:sortable={personSortableOptions()}>
-          {#each unplacedParticipants as person (person.id)}
+        <div
+          class="drawer-list"
+          id="drawer-participants"
+          data-container="people-drawer"
+          use:dragHandleZone={{ items: displayParticipants, type: PERSON_ZONE_TYPE, flipDurationMs: 150, useCursorForDetection: true }}
+          on:consider={handleParticipantsConsider}
+          on:finalize={handleParticipantsFinalize}
+        >
+          {#each displayParticipants as person (person.id)}
             <PersonCard {person} />
           {/each}
         </div>

@@ -427,14 +427,14 @@ function renderPersonCard(person) {
       persist();
     });
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(d.slice(0, 3)));
+    label.appendChild(document.createTextNode(DAY_ABBR[d]));
     grid.appendChild(label);
   });
   detail.appendChild(grid);
 
   const commentsLabel = el('div', { class: 'contact-line', text: 'Comments:' });
   detail.appendChild(commentsLabel);
-  const commentsInput = el('textarea', { class: 'inline-input comments-field', attrs: { rows: '2', placeholder: 'Any comments, questions, or unique scheduling concerns' } });
+  const commentsInput = el('textarea', { class: 'inline-input comments-field', attrs: { rows: '2', placeholder: 'e.g. can only attend every other week' } });
   commentsInput.value = person.comments;
   commentsInput.addEventListener('input', () => { person.comments = commentsInput.value; persist(); });
   detail.appendChild(commentsInput);

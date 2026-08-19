@@ -227,6 +227,10 @@ button:hover { background: #eef1f5; }
   resize: vertical;
   margin-bottom: 4px;
 }
+.comments-field::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 .person-field {
   font-size: 0.85em;

@@ -89,18 +89,20 @@ participant concept here at all.
 - **Import Sign-Up (CSV)**: built specifically for a Google Forms **Multiple-choice
   grid** question — each group as a grid row, choices labeled `1st Choice`,
   `2nd Choice`, etc. as grid columns. (Not Forms' separate dedicated "Ranking" question
-  type — that exports differently and won't parse here.) Expects a `Name` column and
-  one column per group row, headers containing the group name in brackets (e.g.
-  `Which groups would you prefer to do? [Wednesday Night - Young Adults]`). One group is
-  created per such column, even if nobody ranked it. If a day name appears anywhere in
-  the group's name, that's parsed out for availability checking. Optional `Email`,
-  `Phone`, an availability column (comma-separated day names), and a free-text column
-  whose header contains "comment", "question", or "concern" (e.g. "Any comments,
-  questions, or unique scheduling concerns?") are also read if present — the last
-  becomes their editable Comments field. CSV parsing here is quote-aware (unlike the
-  Schedule tool's plain comma split), so commas inside a quoted response are handled
-  correctly. Importing again adds new people and merges into an existing person by
-  matching email (refreshing their comments too), rather than duplicating them.
+  type — that exports differently and won't parse here.) One column per group row,
+  headers containing the group name in brackets (e.g. `Which groups would you prefer to
+  do? [Wednesday Night - Young Adults]`). One group is created per such column, even if
+  nobody ranked it. If a day name appears anywhere in the group's name, that's parsed
+  out for availability checking.
+- **Sign-up rows**: each row is a person. Expects a `Name` column (split on the first
+  space into first/last), and optionally `Email`, `Phone`, an availability column
+  (comma-separated day names), and a free-text column whose header contains "comment",
+  "question", or "concern" (e.g. "Any comments, questions, or unique scheduling
+  concerns?") — the last becomes their editable Comments field. CSV parsing here is
+  quote-aware (unlike the Schedule tool's plain comma split), so commas inside a quoted
+  response are handled correctly. Importing again adds new people and merges into an
+  existing person by matching email (refreshing their comments too), rather than
+  duplicating them.
 - **Placing people**: drag a leader or participant from a drawer straight into a group
   (no day grid here — groups sit side-by-side since their night was already decided in
   the Schedule tool, sorted by that day then alphabetically). Availability is checked

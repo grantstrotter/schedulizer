@@ -1,7 +1,10 @@
 # Schedulizer
 
-A small local tool for running church small groups. Pure HTML/CSS/JS, no build step,
-one CDN dependency ([SortableJS](https://sortablejs.github.io/Sortable/)).
+A small tool for running church small groups, built as three static pages sharing
+components — [Svelte](https://svelte.dev) + [Vite](https://vitejs.dev), deployed as a
+GitHub Pages project site. There's no backend: everything lives in the browser
+(`localStorage` for autosave, exported `.json`/`.csv` files for anything you actually
+want to keep).
 
 It's actually two tools, covering two separate stages of the process:
 
@@ -13,10 +16,27 @@ It's actually two tools, covering two separate stages of the process:
 They're independent projects with their own save files — `schedule.html` doesn't know
 about `distribute.html`'s data or vice versa.
 
-## Running it
+## Running it locally
 
-Open `index.html` directly in a browser (double-click it, or drag it into a browser
-window) and pick a tool. No server needed.
+```bash
+npm install
+npm run dev       # dev server with hot reload, served at http://localhost:5173/
+```
+
+To check a production build behaves the same as it will once deployed:
+
+```bash
+npm run build      # outputs to dist/
+npm run preview    # serves the built dist/ output, base path and all
+```
+
+## Deployment
+
+Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds the project and
+publishes it to GitHub Pages automatically — no manual deploy step. The live site is at
+`https://grantstrotter.github.io/schedulizer/`. You can also trigger a deploy manually
+from any branch via the Actions tab's "Run workflow" button, useful for testing changes
+before merging.
 
 ## Usage — Schedule Groups (`schedule.html`)
 
@@ -24,6 +44,9 @@ window) and pick a tool. No server needed.
   automatically. Only with no autosave present do you see the empty state, where you can
   start a new project or open an existing `.json` project file (click or drag-and-drop
   it onto the page).
+- **Days**: seven columns across the top, each with its own **Groups** section and
+  **Leaders** section — drag a group into a day's Groups section, and a leader into its
+  Leaders section (they don't auto-redirect if you drop in the wrong sub-section).
 - **Groups**: created via "+ Add Group" in the toolbar. They start in the Groups drawer;
   drag them onto a day column to schedule them. A group can only be on one day at a time.
   Name is editable inline.
@@ -39,9 +62,11 @@ window) and pick a tool. No server needed.
   that day) or onto a group (nested as a child of that group — it moves with the group
   from then on).
 - **Availability**: expand a leader card (click the name) to see/edit their available
-  nights via checkboxes. Dragging a leader onto a day they haven't checked as available
-  is blocked, with a toast explaining why. A leader with **no** availability checked yet
-  is treated as unrestricted (so freshly-imported leaders aren't unassignable everywhere).
+  nights via checkboxes. A leader with **no** availability checked yet is treated as
+  unrestricted (so freshly-imported leaders aren't unassignable everywhere). Dropping
+  someone (or a group, based on its nested leaders) on a night that doesn't match is
+  **allowed, not blocked** — a 📅 badge shows up on the affected card so you can catch
+  and fix it afterward, rather than the drop being refused outright.
 - **Save / Export**: "Save" downloads the full project file (re-open it later the same
   way). "Export CSV" downloads a flattened, spreadsheet-friendly view: one row per
   assigned leader (day, group, name, contact), plus a trailing block of anyone still
@@ -74,10 +99,11 @@ window) and pick a tool. No server needed.
 
 Leaders are stored once (in `leaders`) and referenced by `id` elsewhere —
 `days[].personIds`, `days[].groupIds`, and `groups[].personIds` are all just id lists, so
-editing a leader's phone/email/availability updates it everywhere they're referenced.
-`isLeader`, `minimumRequired`, and `preferences` exist for compatibility with the
-Distribute tool's data shape but aren't used by the Schedule tool itself — there's no
-participant concept here at all.
+editing a leader's phone/email/availability updates it everywhere they're referenced. A
+group's day is never stored directly here — it's derived from which day's `groupIds`
+array currently contains it. `isLeader`, `minimumRequired`, and `preferences` exist for
+compatibility with the Distribute tool's data shape but aren't used by the Schedule tool
+itself — there's no participant concept here at all.
 
 ## Usage — Distribute Participants (`distribute.html`)
 
@@ -110,8 +136,6 @@ participant concept here at all.
 - **Placing people**: drag a leader or participant from a drawer straight into a group
   (no day grid here — groups sit side-by-side since their night was already decided in
   the Schedule tool). Drag a group card by its title bar to reorder it on the board.
-  Availability is checked against the group's parsed day, same as
-  the Schedule tool.
 - **Preference match**: each placed person shows a colored number badge for their
   current group's rank in their preferences — blue for a great match, shading through
   green, yellow, and orange down to red for a poor one (5th choice or worse, all sharing
@@ -124,15 +148,26 @@ participant concept here at all.
   right below Leader) for people especially effective at building community. Always
   starts unchecked and is never set by the sign-up import — only by hand. Shows a ⭐
   badge next to their name when checked.
-- **Comments**: an expanded person card has an editable Comments box below their
-  availability, imported from the sign-up form's free-text question (if present) and
-  editable by hand afterward.
-- **Needs Review**: a dark red "?" badge in a card's bottom-left corner means they're
-  placed in a group whose night isn't among their marked availability (applies to
-  leaders too). Only fires if they have at least one availability day checked — no
-  boxes checked means unrestricted, same convention as everywhere else. Manual drags
-  already block this exact mismatch, but the Auto-Assign steps place people by
-  preference rank alone, so this is how you catch and fix it afterward.
+- **Comments**: an expanded person card has an editable Comments box, imported from the
+  sign-up form's free-text question (if present) and editable by hand afterward, with a
+  **Dismiss: Comment has been reviewed** checkbox below it — check it off once you've
+  read and dealt with what they wrote. It's pre-checked for anyone with no comment, or a
+  placeholder value that doesn't carry real information (exact, case-insensitive matches
+  for "n/a", "na", "no", "none", "nope", "nothing", "not applicable", "no comment",
+  "no comments", or a bare "-", with or without a trailing period — a comment that merely
+  *contains* one of those isn't affected). Editing the comment, or moving the person to a
+  different group or drawer, clears the checkbox again, since either one means the
+  comment needs a fresh look.
+- **Needs Review**: a badge in a card's bottom-left corner means something about this
+  person's placement is worth a second look — applies to leaders too. There are two
+  independent reasons it can appear: a red 📅 means they're placed in a group whose
+  night isn't among their marked availability (only fires if they have at least one
+  availability day checked — no boxes checked means unrestricted, same convention as
+  everywhere else); a yellow 💬 means they have a comment that hasn't been dismissed
+  yet. If both are true at once, the badge becomes a two-color pill (📅 half red, 💬 half
+  yellow) rather than picking just one. Dropping someone on a night they're not
+  available for is **allowed, not blocked** — this badge is how you catch and fix it (or
+  the comment) afterward.
 - **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
   everyone still unassigned into their 1st-choice group, unconditionally. Each
   **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an
@@ -156,17 +191,35 @@ participant concept here at all.
   JSON, "Export CSV" downloads one row per person with their group, name, phone,
   email, and leader flag.
 
-## Known POC limitations
+## Data model — Distribute Participants
+
+```jsonc
+{
+  "groups": [
+    { "id": "...", "name": "Wednesday Night - Young Adults", "day": "wednesday", "personIds": [], "minimumRequired": 10 }
+  ],
+  "leaders": [
+    { "id": "...", "first": "Jane", "last": "Doe", "phone": "", "email": "jane@example.com", "isLeader": true, "availability": [], "preferences": [], "communityBuilder": false, "comments": "", "commentAddressed": false }
+  ],
+  "participants": [
+    { "id": "...", "first": "John", "last": "Smith", "phone": "", "email": "john@example.com", "isLeader": false, "availability": ["sunday"], "preferences": ["<groupId>", "..."], "communityBuilder": false, "comments": "Needs a ride", "commentAddressed": false }
+  ]
+}
+```
+
+Unlike the Schedule tool, a group's `day` **is** stored directly here — parsed once from
+its name (whole-word match against a full day name) at creation or rename time, since
+groups aren't dragged onto day columns in this tool the way they are in Schedule.
+`preferences` is an ordered list of group ids, most-preferred first. `commentAddressed`
+resets to `false` whenever the comment is edited or the person is moved to a different
+group/drawer — see "Comments" above.
+
+## Known limitations
 
 - CSV parsing in the Schedule tool (and the Distribute tool's `Name`/`Email`/`Phone`/
   availability columns) is a plain comma split — a comma inside a field will misalign
   columns. The Distribute tool's sign-up importer handles quoted fields, since real
   Google Forms exports commonly quote them.
-- Dragging a group onto a day (Schedule tool) checks the availability of everyone
-  already in it (blocked, with a toast, if any of them isn't marked available that
-  night).
-- No accounts, no server, no multi-user sync — these are single-file local tools, one
-  project open at a time each.
-- Any drag-and-drop action re-renders the whole board, so an expanded person's detail
-  panel collapses again after the next drag elsewhere (the underlying data isn't lost,
-  just the expand/collapse UI state).
+- No accounts, no backend, no multi-user sync — everything lives in the browser
+  (`localStorage` autosave, exported files for anything you want to keep), one project
+  open at a time per tool.

@@ -19,7 +19,7 @@
     <span class="drag-handle">⠿ </span>
     <span class="person-name">{fullName}</span>
     {#if needsReview}
-      <span class="needs-review-badge" title="Needs review: Outside of stated availability">?</span>
+      <span class="needs-review-badge" title="Needs review: Outside of stated availability">📅</span>
     {/if}
     <button
       class="icon-btn"

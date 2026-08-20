@@ -80,7 +80,8 @@ function normalizePerson(isLeader) {
     availability: Array.isArray(person.availability) ? person.availability.filter(d => DAYS.includes(d)) : [],
     preferences: Array.isArray(person.preferences) ? person.preferences.filter(id => typeof id === 'string') : [],
     communityBuilder: !!person.communityBuilder, // manual-only flag, never set by CSV import
-    comments: typeof person.comments === 'string' ? person.comments : ''
+    comments: typeof person.comments === 'string' ? person.comments : '',
+    commentAddressed: !!person.commentAddressed
   });
 }
 
@@ -92,6 +93,19 @@ export function matchInfo(person, group) {
   const rank = person.preferences.indexOf(group.id);
   if (rank === -1) return { label: '!', tier: 'unranked' };
   return { label: String(rank + 1), tier: `t${Math.min(rank + 1, MATCH_TIER_COUNT)}` };
+}
+
+// Sign-up forms that make a comment field look required (rather than optional) train
+// people to type a placeholder rather than leave it blank — none of these carry any
+// actual information, so they shouldn't trigger a comment review any more than a truly
+// empty field would.
+const BLANK_COMMENT_VALUES = new Set([
+  'n/a', 'na', 'no', 'none', 'nope', 'nothing', 'not applicable', 'no comment', 'no comments', '-'
+]);
+
+export function isMeaningfulComment(value) {
+  const normalized = (value || '').trim().toLowerCase().replace(/\.$/, '');
+  return normalized !== '' && !BLANK_COMMENT_VALUES.has(normalized);
 }
 
 // Needs-review flag: placed in a group whose parsed night isn't among their marked
@@ -150,13 +164,13 @@ export function deletePerson(personId, fullName) {
 
 export function addLeader() {
   const id = uid();
-  mutate(p => { p.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [], communityBuilder: false, comments: '' }); });
+  mutate(p => { p.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [], communityBuilder: false, comments: '', commentAddressed: false }); });
   return id;
 }
 
 export function addParticipant() {
   const id = uid();
-  mutate(p => { p.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [], communityBuilder: false, comments: '' }); });
+  mutate(p => { p.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [], communityBuilder: false, comments: '', commentAddressed: false }); });
   return id;
 }
 
@@ -181,6 +195,20 @@ export function reorderGroups(orderedIds) {
 
 export function updatePersonField(personId, field, value) {
   mutate(p => { findPerson(p, personId)[field] = value; });
+}
+
+// Editing the comment itself invalidates any prior "addressed" dismissal — a revised
+// comment needs a fresh look, same reasoning as moving the person to a new placement.
+export function updateComments(personId, value) {
+  mutate(p => {
+    const person = findPerson(p, personId);
+    person.comments = value;
+    person.commentAddressed = false;
+  });
+}
+
+export function setCommentAddressed(personId, value) {
+  mutate(p => { findPerson(p, personId).commentAddressed = value; });
 }
 
 export function togglePersonAvailability(personId, day) {
@@ -226,11 +254,20 @@ export function setGroupRank(personId, groupId, rank) {
 // Called when a group's people-list dnd-zone finalizes a drop it has accepted (see
 // dragdrop.js) — personIds is the zone's full, final membership in display order.
 // Anyone arriving from elsewhere (another group, a drawer) is pulled out of their old
-// spot first.
+// spot first, and has any comment-addressed dismissal cleared — a new placement is a new
+// context, so it needs a fresh look, same reasoning as editing the comment itself.
 export function setGroupMembership(groupId, personIds) {
   mutate(p => {
-    personIds.forEach(id => removePersonFromAllPlacements(p, id));
-    findGroup(p, groupId).personIds = personIds;
+    const group = findGroup(p, groupId);
+    const previousIds = new Set(group.personIds);
+    personIds.forEach(id => {
+      removePersonFromAllPlacements(p, id);
+      if (!previousIds.has(id)) {
+        const person = findPerson(p, id);
+        if (person) person.commentAddressed = false;
+      }
+    });
+    group.personIds = personIds;
   });
 }
 
@@ -244,13 +281,18 @@ function reorderSubsetToMatch(list, orderedIds) {
 
 // Called when a drawer's dnd-zone finalizes a drop it has accepted. personIds is that
 // drawer's full, final unplaced membership in display order — anyone arriving from a
-// group (or the other drawer) is pulled out of their old placement and has their
-// leader/participant flag flipped to match which drawer they landed in.
+// group (or the other drawer) is pulled out of their old placement, has their
+// leader/participant flag flipped to match which drawer they landed in, and has any
+// comment-addressed dismissal cleared (see setGroupMembership).
 export function setDrawerMembership(isLeaderDrawer, personIds) {
   mutate(p => {
+    const targetArray = isLeaderDrawer ? p.leaders : p.participants;
+    const previousIds = new Set(targetArray.filter(x => !isPersonPlaced(p, x.id)).map(x => x.id));
     personIds.forEach(id => {
       removePersonFromAllPlacements(p, id);
-      findPerson(p, id).isLeader = isLeaderDrawer;
+      const person = findPerson(p, id);
+      person.isLeader = isLeaderDrawer;
+      if (!previousIds.has(id)) person.commentAddressed = false;
     });
     const allPeople = getAllPeople(p);
     const leaders = allPeople.filter(x => x.isLeader);
@@ -280,7 +322,10 @@ export function assignFirstChoices() {
   mutate(p => {
     p.participants.filter(x => !isPersonPlaced(p, x.id) && x.preferences.length > 0).forEach(x => {
       const group = findGroup(p, x.preferences[0]);
-      if (group) group.personIds.push(x.id);
+      if (group) {
+        group.personIds.push(x.id);
+        x.commentAddressed = false;
+      }
     });
   });
   showToast(`Placed ${unplaced.length} people in their 1st choice.`);
@@ -323,6 +368,7 @@ export function fillUnderMinimumGroupsAtRank(rank) {
           const fromGroup = getPersonGroup(p, person.id);
           fromGroup.personIds = fromGroup.personIds.filter(x => x !== person.id);
           group.personIds.push(person.id);
+          person.commentAddressed = false;
           moved++;
           progress = true;
           break; // restart from the most-deficient group with fresh sizes
@@ -396,12 +442,13 @@ export function runSignupImport(lines, mapping) {
         existing.phone = phone || existing.phone;
         existing.availability = availability.length > 0 ? availability : existing.availability;
         existing.preferences = preferences;
+        if (isMeaningfulComment(comments) && comments !== existing.comments) existing.commentAddressed = false;
         existing.comments = comments || existing.comments;
         merged++;
       } else {
         // Sign-up rows are always participants — leaders are user-created, never
         // detected from the form itself (there's no "Is Leader" mapping).
-        const person = { id: uid(), first, last, phone, email, isLeader: false, availability, preferences, communityBuilder: false, comments };
+        const person = { id: uid(), first, last, phone, email, isLeader: false, availability, preferences, communityBuilder: false, comments, commentAddressed: false };
         p.participants.push(person);
         imported++;
       }

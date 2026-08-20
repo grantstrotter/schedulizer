@@ -3,15 +3,17 @@
   import { DAYS, DAY_ABBR } from '../lib/constants.js';
   import {
     project, highlightGroupId, findGroup, getPersonGroup, matchInfo, needsAvailabilityReview,
-    deletePerson, updatePersonField, togglePersonAvailability,
-    toggleLeader, toggleCommunityBuilder, setGroupRank, MATCH_TIER_COUNT
+    isMeaningfulComment, deletePerson, updatePersonField, updateComments, setCommentAddressed,
+    togglePersonAvailability, toggleLeader, toggleCommunityBuilder, setGroupRank, MATCH_TIER_COUNT
   } from './store.js';
 
   export let person;
 
   $: currentGroup = getPersonGroup($project, person.id);
   $: match = currentGroup ? matchInfo(person, currentGroup) : null;
-  $: needsReview = needsAvailabilityReview(person, currentGroup);
+  $: needsAvailability = needsAvailabilityReview(person, currentGroup);
+  $: hasComment = isMeaningfulComment(person.comments);
+  $: needsCommentReview = hasComment && !person.commentAddressed;
   $: fullName = `${person.first} ${person.last}`.trim() || '(unnamed)';
 
   // Candidate highlighting: when a group's "Highlight Candidates" is active, everyone
@@ -38,8 +40,15 @@
         title={match.tier === 'unranked' ? 'Not on this person’s preference list' : `Rank ${match.label} choice`}
       >{match.label}</span>
     {/if}
-    {#if needsReview}
-      <span class="needs-review-badge" title="Needs review: Outside of stated availability">?</span>
+    {#if needsAvailability && needsCommentReview}
+      <span class="needs-review-badge needs-review-badge--combo" title="Needs review"
+        ><span class="needs-review-half needs-review-half--availability" title="Needs review: Outside of stated availability">📅</span
+        ><span class="needs-review-half needs-review-half--comment" title="Needs review: Comment not dismissed">💬</span
+      ></span>
+    {:else if needsAvailability}
+      <span class="needs-review-badge" title="Needs review: Outside of stated availability">📅</span>
+    {:else if needsCommentReview}
+      <span class="needs-review-badge needs-review-badge--comment" title="Needs review: Comment not dismissed">💬</span>
     {/if}
     <button class="icon-btn" title="Delete person" on:mousedown|stopPropagation on:touchstart|stopPropagation on:click|preventDefault={() => deletePerson(person.id, `${person.first} ${person.last}`.trim())}>✕</button>
     {#if candidateTier}
@@ -80,6 +89,8 @@
       on:input={(e) => updatePersonField(person.id, 'email', e.target.value)}
     />
 
+    <hr class="detail-divider" />
+
     <label class="contact-line leader-toggle">
       <input type="checkbox" checked={person.isLeader} on:change={(e) => toggleLeader(person.id, e.target.checked)} />
       Leader
@@ -89,6 +100,8 @@
       <input type="checkbox" checked={person.communityBuilder} on:change={(e) => toggleCommunityBuilder(person.id, e.target.checked)} />
       Community Builder
     </label>
+
+    <hr class="detail-divider" />
 
     <div class="contact-line">Available:</div>
     <div class="availability-grid">
@@ -100,16 +113,8 @@
       {/each}
     </div>
 
-    <div class="contact-line">Comments:</div>
-    <textarea
-      class="inline-input comments-field"
-      rows="2"
-      placeholder="e.g. can only attend every other week"
-      value={person.comments}
-      on:input={(e) => updatePersonField(person.id, 'comments', e.target.value)}
-    ></textarea>
-
     {#if $project.groups.length > 0}
+      <hr class="detail-divider" />
       <div class="contact-line preferences-editor">
         <div>Group ranking:</div>
         {#each $project.groups as g (g.id)}
@@ -129,5 +134,24 @@
         {/each}
       </div>
     {/if}
+
+    <hr class="detail-divider" />
+
+    <div class="contact-line">Comments:</div>
+    <textarea
+      class="inline-input comments-field"
+      rows="2"
+      placeholder="e.g. can only attend every other week"
+      value={person.comments}
+      on:input={(e) => updateComments(person.id, e.target.value)}
+    ></textarea>
+    <label class="contact-line leader-toggle">
+      <input
+        type="checkbox"
+        checked={!hasComment || person.commentAddressed}
+        on:change={(e) => setCommentAddressed(person.id, e.target.checked)}
+      />
+      Dismiss: Comment has been reviewed
+    </label>
   </div>
 </details>

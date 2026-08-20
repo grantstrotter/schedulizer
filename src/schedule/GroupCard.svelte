@@ -77,7 +77,7 @@
       <span class="group-name">{group.name || '(unnamed group)'}</span>
     {/if}
     {#if needsReview}
-      <span class="needs-review-badge" title="Needs review: {unavailableLeaders.map(p => `${p.first} ${p.last}`.trim()).join(', ')} not marked available this day">?</span>
+      <span class="needs-review-badge" title="Needs review: {unavailableLeaders.map(p => `${p.first} ${p.last}`.trim()).join(', ')} not marked available this day">📅</span>
     {/if}
     <button class="icon-btn group-edit-btn" title="Rename group" on:mousedown|stopPropagation on:touchstart|stopPropagation on:click|preventDefault={startEdit}>✎</button>
     <button class="icon-btn" title="Delete group" on:mousedown|stopPropagation on:touchstart|stopPropagation on:click|preventDefault={() => deleteGroup(group.id, group.name)}>✕</button>

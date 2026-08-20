@@ -226,6 +226,7 @@ button:hover { background: #eef1f5; }
   font-size: 0.85em;
   resize: vertical;
   margin-bottom: 4px;
+  border-color: var(--border);
 }
 .comments-field::placeholder {
   color: var(--text-muted);
@@ -315,6 +316,11 @@ button:hover { background: #eef1f5; }
   color: var(--text-muted);
 }
 .person-detail .contact-line { margin-bottom: 4px; }
+.detail-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 0;
+}
 
 .leader-toggle {
   display: flex;
@@ -512,13 +518,14 @@ button:hover { background: #eef1f5; }
 /* Bottom-left so it never collides with the top-left candidate-rank badge — a person
    can be both a highlighted candidate for one group and flagged for review in another
    at the same time. */
+/* Fixed width/height (not content-driven) so the shape is always an exact ratio
+   regardless of glyph width — 1:1 circle for a single reason, 2:1 pill for both. */
 .needs-review-badge {
   position: absolute;
   bottom: -6px;
   left: -6px;
-  min-width: 18px;
+  width: 18px;
   height: 18px;
-  padding: 0 4px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -529,8 +536,36 @@ button:hover { background: #eef1f5; }
   background: var(--danger);
   cursor: default;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
   z-index: 2;
 }
+
+/* Comment-only: same shape as the availability badge, amber instead of red, speech-
+   bubble glyph instead of "?" — same match-t3 yellow used elsewhere for tier badges. */
+.needs-review-badge--comment {
+  background: #ffd500;
+  color: #1a1a1a;
+}
+
+/* Both reasons at once: a 2:1 pill instead of a circle, split into its two halves so
+   each reason keeps its own color rather than blending into one ambiguous badge. Same
+   height as the single-reason badge, exactly double the width. */
+.needs-review-badge--combo {
+  width: 36px;
+  border-radius: 9px;
+  background: none;
+}
+.needs-review-half {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50%;
+  height: 100%;
+  color: #fff;
+  overflow: hidden;
+}
+.needs-review-half--availability { background: var(--danger); }
+.needs-review-half--comment { background: #ffd500; color: #1a1a1a; }
 
 .tool-tag {
   font-weight: 400;

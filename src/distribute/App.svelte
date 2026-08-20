@@ -324,15 +324,24 @@
   <h3>Comments</h3>
   <p>An expanded person card has an editable <strong>Comments</strong> box, below their
     availability — imported from the sign-up form's free-text question (if present) and
-    editable by hand afterward.</p>
+    editable by hand afterward, with a <strong>Dismiss: Comment has been reviewed</strong>
+    checkbox right below it — check it off once you've read and dealt with what they
+    wrote. It's pre-checked for anyone with no comment (or a placeholder like "N/A" or
+    "None" — those don't count as real comments). Editing the comment, or
+    moving the person to a different group or drawer, clears that checkbox again, since
+    either one means the comment needs a fresh look.</p>
 
   <h3>Needs Review</h3>
-  <p>A dark red <strong>?</strong> badge in a card's bottom-left corner means they're
-    placed in a group whose night isn't among their marked availability — applies to
-    leaders too. It only fires if they have at least one availability day checked (no
-    boxes checked means unrestricted, same as everywhere else). Manual drags already
-    block this exact mismatch, but the Auto-Assign steps place people by preference rank
-    alone, so this is how you catch and fix it afterward.</p>
+  <p>A badge in a card's bottom-left corner means something about this person's
+    placement is worth a second look — applies to leaders too. There are two independent
+    reasons it can appear: a red <strong>📅</strong> means they're placed in a group
+    whose night isn't among their marked availability (only fires if they have at least
+    one availability day checked — no boxes checked means unrestricted, same as
+    everywhere else); a yellow <strong>💬</strong> means they have a comment that hasn't
+    been dismissed yet. If both are true at once, the badge becomes a two-color
+    pill showing both rather than picking just one. Dropping someone
+    on a night they're not available for is allowed, not blocked — this badge is how you
+    catch and fix it (or the comment) afterward.</p>
 
   <h3>Exporting</h3>
   <p><strong>Save</strong> downloads the full project as JSON. <strong>Export CSV</strong>

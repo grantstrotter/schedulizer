@@ -100,7 +100,7 @@ export function matchInfo(person, group) {
 // actual information, so they shouldn't trigger a comment review any more than a truly
 // empty field would.
 const BLANK_COMMENT_VALUES = new Set([
-  'n/a', 'na', 'no', 'none', 'nope', 'nothing', 'not applicable', 'no comment', 'no comments', '-'
+  'n/a', 'na', 'no', 'none', 'nope', 'nope!', 'nothing', 'not applicable', 'no comment', 'no comments', '-'
 ]);
 
 export function isMeaningfulComment(value) {

@@ -153,7 +153,7 @@ itself — there's no participant concept here at all.
   **Dismiss: Comment has been reviewed** checkbox below it — check it off once you've
   read and dealt with what they wrote. It's pre-checked for anyone with no comment, or a
   placeholder value that doesn't carry real information (exact, case-insensitive matches
-  for "n/a", "na", "no", "none", "nope", "nothing", "not applicable", "no comment",
+  for "n/a", "na", "no", "none", "nope", "nope!", "nothing", "not applicable", "no comment",
   "no comments", or a bare "-", with or without a trailing period — a comment that merely
   *contains* one of those isn't affected). Editing the comment, or moving the person to a
   different group or drawer, clears the checkbox again, since either one means the

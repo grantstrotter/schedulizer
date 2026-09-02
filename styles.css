@@ -602,7 +602,9 @@ button:hover { background: #eef1f5; }
   user-select: none;
 }
 .menu > summary::-webkit-details-marker { display: none; }
-.menu > summary::after { content: ' \25BE'; font-size: 1.1em; }
+/* transform (not font-size) so the enlarged glyph can't inflate the line's height —
+   font-size scaling here previously made File/Edit taller than a plain button like Help. */
+.menu > summary::after { content: '\25BE'; display: inline-block; margin-left: 6px; transform: scale(1.3) translateY(-1.5px); }
 .menu:hover > summary { background: #eef1f5; }
 
 .menu-list {

@@ -15,7 +15,7 @@
     project, started, isGroupPlaced, isPersonPlaced,
     newProject, importJSONFile, importCSVFile, tryResumeAutosave,
     addGroup, addLeader, exportJSON, exportCSV,
-    setDrawerGroups, setDrawerLeaders
+    setDrawerGroups, setDrawerLeaders, undo, redo, canUndo, canRedo
   } from './store.js';
 
   let helpOpen = false;
@@ -28,7 +28,13 @@
   });
 
   function handleKeydown(e) {
-    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 's') return;
+    const key = e.key.toLowerCase();
+    if ((e.metaKey || e.ctrlKey) && key === 'z') {
+      e.preventDefault();
+      if ($project) { if (e.shiftKey) redo(); else undo(); }
+      return;
+    }
+    if (!(e.metaKey || e.ctrlKey) || key !== 's') return;
     e.preventDefault();
     if ($project) exportJSON();
   }
@@ -97,6 +103,8 @@
       <button on:click={() => fileOpenInput.click()}>Open&hellip;</button>
       <button on:click={() => fileImportCsvInput.click()}>Import People (CSV)&hellip;</button>
       <button on:click={() => (helpOpen = true)}>Help</button>
+      <button on:click={undo} disabled={!$canUndo} title="Undo (Cmd/Ctrl+Z)">&larr; Undo</button>
+      <button on:click={redo} disabled={!$canRedo} title="Redo (Cmd/Ctrl+Shift+Z)">&rarr; Redo</button>
       <span class="spacer"></span>
       <button on:click={exportJSON}>Save As&hellip;</button>
       <button on:click={exportCSV}>Export CSV</button>
@@ -196,6 +204,14 @@
     <code>Sun|Thu</code>) or add them one at a time with <strong>+ Add Leader</strong>.
     Click a leader's name to expand their card and fill in contact info. Drag their
     title bar onto a day, or straight into a group to nest them under it.</p>
+
+  <h3>Undo / Redo</h3>
+  <p>Every change that affects saved data — moving people or groups, editing a field,
+    importing a CSV — can be undone with the <strong>Undo</strong> button (or
+    <kbd>Cmd/Ctrl+Z</kbd>) and reapplied with <strong>Redo</strong> (or
+    <kbd>Cmd/Ctrl+Shift+Z</kbd>). Typing in a field groups into a single undo step rather
+    than one per keystroke. Starting a new project or opening a different file clears
+    this history — you can't undo back into a document you've left.</p>
 
   <h3>Availability</h3>
   <p>Inside an expanded leader card, check the nights they're available. A leader with

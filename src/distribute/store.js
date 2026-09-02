@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import { DAYS, DAY_LABELS } from '../lib/constants.js';
 import { uid, csvEscape, parseAvailability, parseCSVRow, downloadBlob } from '../lib/util.js';
 import { showToast } from '../lib/toast.js';
+import { createUndoManager } from '../lib/undoable.js';
 
 const AUTOSAVE_KEY = 'schedulizer_distribute_v1';
 const SCHEMA_VERSION = 1; // bumped whenever the exported project JSON's shape changes
@@ -11,21 +12,19 @@ export const project = writable(null);
 export const started = writable(false);
 export const highlightGroupId = writable(null);
 
-// Mutate the project object in place, then notify subscribers and persist. Simpler than
-// rebuilding an immutable tree on every change, and matches how the data was already
-// being handled — Svelte stores don't require immutability, just a notify call.
-function mutate(fn) {
-  project.update(p => {
-    fn(p);
-    return p;
-  });
-  persist();
-}
-
 function persist() {
   const p = get(project);
   if (p) localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(p));
 }
+
+// mutate() funnels every state-changing action through one place — see undoable.js for
+// why that's what makes undo/redo cheap to add here.
+const undoManager = createUndoManager(project, persist);
+const mutate = undoManager.mutate;
+export const canUndo = undoManager.canUndo;
+export const canRedo = undoManager.canRedo;
+export const undo = undoManager.undo;
+export const redo = undoManager.redo;
 
 function blankProject() {
   return { groups: [], leaders: [], participants: [] };
@@ -124,6 +123,7 @@ export function newProject(confirmFirst) {
   project.set(blankProject());
   highlightGroupId.set(null);
   persist();
+  undoManager.reset();
   started.set(true);
 }
 
@@ -137,6 +137,7 @@ export function loadProjectFromObject(obj) {
   project.set(p);
   highlightGroupId.set(null);
   persist();
+  undoManager.reset();
   started.set(true);
 }
 
@@ -181,14 +182,14 @@ export function renameGroup(groupId, name) {
     const g = findGroup(p, groupId);
     g.name = name;
     g.day = parseGroupDay(name);
-  });
+  }, `renameGroup:${groupId}`);
 }
 
 export function updateGroupMinimum(groupId, value) {
   mutate(p => {
     const g = findGroup(p, groupId);
     g.minimumRequired = Number.isFinite(value) && value >= 0 ? value : 0;
-  });
+  }, `groupMinimum:${groupId}`);
 }
 
 export function reorderGroups(orderedIds) {
@@ -196,7 +197,7 @@ export function reorderGroups(orderedIds) {
 }
 
 export function updatePersonField(personId, field, value) {
-  mutate(p => { findPerson(p, personId)[field] = value; });
+  mutate(p => { findPerson(p, personId)[field] = value; }, `personField:${personId}:${field}`);
 }
 
 // Editing the comment itself invalidates any prior "addressed" dismissal — a revised
@@ -206,7 +207,7 @@ export function updateComments(personId, value) {
     const person = findPerson(p, personId);
     person.comments = value;
     person.commentAddressed = false;
-  });
+  }, `comments:${personId}`);
 }
 
 export function setCommentAddressed(personId, value) {

@@ -13,7 +13,8 @@
     project, started, highlightGroupId, isPersonPlaced, ordinal, maxPreferenceRank,
     newProject, importJSONFile, tryResumeAutosave, readSignupCSVFile,
     addLeader, addParticipant, exportJSON, exportCSV,
-    assignFirstChoices, fillUnderMinimumGroupsAtRank, reorderGroups, setDrawerMembership
+    assignFirstChoices, fillUnderMinimumGroupsAtRank, reorderGroups, setDrawerMembership,
+    undo, redo, canUndo, canRedo
   } from './store.js';
 
   let helpOpen = false;
@@ -32,7 +33,13 @@
       if ($highlightGroupId) highlightGroupId.set(null);
       return;
     }
-    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 's') return;
+    const key = e.key.toLowerCase();
+    if ((e.metaKey || e.ctrlKey) && key === 'z') {
+      e.preventDefault();
+      if ($project) { if (e.shiftKey) redo(); else undo(); }
+      return;
+    }
+    if (!(e.metaKey || e.ctrlKey) || key !== 's') return;
     e.preventDefault();
     if ($project) exportJSON();
   }
@@ -132,6 +139,8 @@
         <button on:click={() => fileOpenInput.click()}>Open&hellip;</button>
         <button on:click={() => fileImportSignupInput.click()}>Import Sign-Up (CSV)&hellip;</button>
         <button on:click={() => (helpOpen = true)}>Help</button>
+        <button on:click={undo} disabled={!$canUndo} title="Undo (Cmd/Ctrl+Z)">&larr; Undo</button>
+        <button on:click={redo} disabled={!$canRedo} title="Redo (Cmd/Ctrl+Shift+Z)">&rarr; Redo</button>
         <span class="spacer"></span>
         <select bind:value={autoAssignValue} on:change={handleAutoAssignChange}>
           <option value="" disabled>Auto-Assign&hellip;</option>
@@ -237,6 +246,16 @@
     group column in the form. Your work auto-saves in this browser as a safety net, but
     use <strong>Save As&hellip;</strong> (or <kbd>Cmd/Ctrl+S</kbd>) to export a
     <code>.json</code> file you can keep or reopen later.</p>
+
+  <h3>Undo / Redo</h3>
+  <p>Every change that affects saved data — moving people or groups, editing a field,
+    importing a sign-up CSV, auto-assigning — can be undone with the
+    <strong>Undo</strong> button (or <kbd>Cmd/Ctrl+Z</kbd>) and reapplied with
+    <strong>Redo</strong> (or <kbd>Cmd/Ctrl+Shift+Z</kbd>). Typing in a field groups into
+    a single undo step rather than one per keystroke. Highlighting candidates isn't
+    tracked, since it doesn't change any saved data. Starting a new project or opening a
+    different file clears this history — you can't undo back into a document you've
+    left.</p>
 
   <h3>Importing a sign-up CSV</h3>
   <p>Built specifically for a Google Forms <strong>Multiple-choice grid</strong> question,

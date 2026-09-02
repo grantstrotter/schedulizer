@@ -75,6 +75,12 @@ before merging.
 - **Autosave**: the current project is mirrored into browser `localStorage` after every
   change, purely as a refresh/crash safety net. It is **not** a substitute for exporting
   — clearing browser data or switching browsers loses it.
+- **Undo / Redo**: every change that affects saved data — placements, field edits, CSV
+  imports — can be undone (**Undo** button or `Cmd/Ctrl+Z`) and reapplied (**Redo**
+  button or `Cmd/Ctrl+Shift+Z`). Rapid edits to the same field (typing a name, say)
+  collapse into a single undo step rather than one per keystroke. This history is
+  in-memory only — it resets on page reload, and starting a new project or opening a
+  different file clears it, since you can't undo back into a document you've left.
 
 ## Data model — Schedule Groups
 
@@ -199,6 +205,12 @@ itself — there's no participant concept here at all.
   JSON (always prompts; there's no way to overwrite a previously-saved file in place),
   "Export CSV" downloads one row per person with their group, name, phone, email, and
   leader flag.
+- **Undo / Redo**: same as the Schedule tool — every change that affects saved data
+  (placements, field edits, sign-up import, auto-assign) can be undone (**Undo** or
+  `Cmd/Ctrl+Z`) and reapplied (**Redo** or `Cmd/Ctrl+Shift+Z`); rapid same-field edits
+  collapse into one undo step. Highlighting candidates isn't tracked, since it's
+  display-only and never touches saved data. This history is in-memory only, and resets
+  whenever you start a new project or open a different file.
 
 ## Data model — Distribute Participants
 

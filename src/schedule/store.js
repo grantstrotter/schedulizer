@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import { DAYS, DAY_LABELS } from '../lib/constants.js';
 import { uid, csvEscape, parseCSVLine, parseAvailability, downloadBlob } from '../lib/util.js';
 import { showToast } from '../lib/toast.js';
+import { createUndoManager } from '../lib/undoable.js';
 
 const AUTOSAVE_KEY = 'schedulizer_schedule_v1';
 const SCHEMA_VERSION = 1; // bumped whenever the exported project JSON's shape changes
@@ -9,21 +10,19 @@ const SCHEMA_VERSION = 1; // bumped whenever the exported project JSON's shape c
 export const project = writable(null);
 export const started = writable(false);
 
-// Mutate the project object in place, then notify subscribers and persist. Simpler than
-// rebuilding an immutable tree on every change, and matches how the data was already
-// being handled — Svelte stores don't require immutability, just a notify call.
-function mutate(fn) {
-  project.update(p => {
-    fn(p);
-    return p;
-  });
-  persist();
-}
-
 function persist() {
   const p = get(project);
   if (p) localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(p));
 }
+
+// mutate() funnels every state-changing action through one place — see undoable.js for
+// why that's what makes undo/redo cheap to add here.
+const undoManager = createUndoManager(project, persist);
+const mutate = undoManager.mutate;
+export const canUndo = undoManager.canUndo;
+export const canRedo = undoManager.canRedo;
+export const undo = undoManager.undo;
+export const redo = undoManager.redo;
 
 function blankProject() {
   const days = {};
@@ -100,6 +99,7 @@ export function newProject(confirmFirst) {
   if (confirmFirst && get(project) && !confirm('Start a new project? This replaces the current one (still saved in local autosave until you start/open another).')) return;
   project.set(blankProject());
   persist();
+  undoManager.reset();
   started.set(true);
 }
 
@@ -120,6 +120,7 @@ export function loadProjectFromObject(obj) {
   }
   project.set(p);
   persist();
+  undoManager.reset();
   started.set(true);
 }
 
@@ -162,11 +163,11 @@ export function addLeader() {
 }
 
 export function renameGroup(groupId, name) {
-  mutate(p => { findGroup(p, groupId).name = name; });
+  mutate(p => { findGroup(p, groupId).name = name; }, `renameGroup:${groupId}`);
 }
 
 export function updatePersonField(personId, field, value) {
-  mutate(p => { findPerson(p, personId)[field] = value; });
+  mutate(p => { findPerson(p, personId)[field] = value; }, `personField:${personId}:${field}`);
 }
 
 export function togglePersonAvailability(personId, day) {

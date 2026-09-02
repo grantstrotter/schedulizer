@@ -7,6 +7,7 @@
   import Toast from '../lib/Toast.svelte';
   import EmptyState from '../lib/EmptyState.svelte';
   import HelpModal from '../lib/HelpModal.svelte';
+  import MenuButton from '../lib/MenuButton.svelte';
   import DayColumn from './DayColumn.svelte';
   import GroupCard from './GroupCard.svelte';
   import PersonCard from './PersonCard.svelte';
@@ -98,17 +99,20 @@
 {:else}
   <div id="app">
     <header class="toolbar">
-      <strong class="app-title">Schedulizer <span class="tool-tag">Schedule</span></strong>
-      <button on:click={() => newProject(true)}>New Project</button>
-      <button on:click={() => fileOpenInput.click()}>Open&hellip;</button>
-      <button on:click={() => fileImportCsvInput.click()}>Import People (CSV)&hellip;</button>
+      <span class="app-title"><a href="index.html" class="app-title-link">Schedulizer</a> <span class="tool-tag">Schedule</span></span>
+      <MenuButton label="File">
+        <button on:click={() => newProject(true)}>New Project</button>
+        <button on:click={() => fileOpenInput.click()}>Open&hellip;</button>
+        <button on:click={exportJSON}>Save As&hellip;</button>
+        <button on:click={() => fileImportCsvInput.click()}>Import People (CSV)&hellip;</button>
+        <button on:click={exportCSV}>Export CSV&hellip;</button>
+      </MenuButton>
+      <MenuButton label="Edit">
+        <button on:click={undo} disabled={!$canUndo} title="Undo (Cmd/Ctrl+Z)">&larr; Undo</button>
+        <button on:click={redo} disabled={!$canRedo} title="Redo (Cmd/Ctrl+Shift+Z)">&rarr; Redo</button>
+      </MenuButton>
       <button on:click={() => (helpOpen = true)}>Help</button>
-      <button on:click={undo} disabled={!$canUndo} title="Undo (Cmd/Ctrl+Z)">&larr; Undo</button>
-      <button on:click={redo} disabled={!$canRedo} title="Redo (Cmd/Ctrl+Shift+Z)">&rarr; Redo</button>
       <span class="spacer"></span>
-      <button on:click={exportJSON}>Save As&hellip;</button>
-      <button on:click={exportCSV}>Export CSV</button>
-      <a href="index.html" class="tool-switch-link">&larr; Home</a>
       <input
         type="file"
         bind:this={fileOpenInput}
@@ -179,8 +183,9 @@
 <HelpModal bind:open={helpOpen} title="Schedulizer Guide">
   <h3>Getting started</h3>
   <p>Start a new project, open a saved <code>.json</code> file, or drag one onto the
-    opening screen. Your work auto-saves in this browser as you go, but that's just a
-    safety net for refreshes — use <strong>Save As&hellip;</strong> (or
+    opening screen (all under the <strong>File</strong> menu). Your work auto-saves in
+    this browser as you go, but that's just a safety net for refreshes — use
+    <strong>Save As&hellip;</strong> (also in <strong>File</strong>, or
     <kbd>Cmd/Ctrl+S</kbd>) to actually export a <code>.json</code> file you can keep or
     reopen later.</p>
 
@@ -207,8 +212,8 @@
 
   <h3>Undo / Redo</h3>
   <p>Every change that affects saved data — moving people or groups, editing a field,
-    importing a CSV — can be undone with the <strong>Undo</strong> button (or
-    <kbd>Cmd/Ctrl+Z</kbd>) and reapplied with <strong>Redo</strong> (or
+    importing a CSV — can be undone with <strong>Edit &rarr; Undo</strong> (or
+    <kbd>Cmd/Ctrl+Z</kbd>) and reapplied with <strong>Edit &rarr; Redo</strong> (or
     <kbd>Cmd/Ctrl+Shift+Z</kbd>). Typing in a field groups into a single undo step rather
     than one per keystroke. Starting a new project or opening a different file clears
     this history — you can't undo back into a document you've left.</p>
@@ -221,10 +226,10 @@
     mismatch is one of its nested leaders, so it's easy to catch and fix afterward.</p>
 
   <h3>Exporting</h3>
-  <p><strong>Save As&hellip;</strong> downloads the full project as JSON (reopen it anytime).
-    <strong>Export CSV</strong> downloads a flattened, spreadsheet-friendly view of the
-    schedule — one row per assigned person, plus a trailing block of anyone still
-    unassigned.</p>
+  <p>Both live in the <strong>File</strong> menu: <strong>Save As&hellip;</strong>
+    downloads the full project as JSON (reopen it anytime), <strong>Export CSV&hellip;</strong>
+    downloads a flattened, spreadsheet-friendly view of the schedule — one row per
+    assigned person, plus a trailing block of anyone still unassigned.</p>
 </HelpModal>
 
 <Toast />

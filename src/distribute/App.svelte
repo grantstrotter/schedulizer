@@ -5,6 +5,7 @@
   import Toast from '../lib/Toast.svelte';
   import EmptyState from '../lib/EmptyState.svelte';
   import HelpModal from '../lib/HelpModal.svelte';
+  import MenuButton from '../lib/MenuButton.svelte';
   import GroupCard from './GroupCard.svelte';
   import PersonCard from './PersonCard.svelte';
   import CsvMappingModal from './CsvMappingModal.svelte';
@@ -21,7 +22,6 @@
   let mappingLines = null; // non-null while the CSV column-mapping modal is open
   let fileOpenInput;
   let fileImportSignupInput;
-  let autoAssignValue = '';
 
   onMount(() => {
     wirePersonExpandToggle();
@@ -66,13 +66,6 @@
     if (!file) return;
     const lines = await readSignupCSVFile(file);
     if (lines) mappingLines = lines;
-  }
-
-  function handleAutoAssignChange() {
-    const value = autoAssignValue;
-    autoAssignValue = ''; // reset to the placeholder — this is an action menu, not a persistent setting
-    if (value === 'first') assignFirstChoices();
-    else if (value) fillUnderMinimumGroupsAtRank(parseInt(value, 10));
   }
 
   // svelte-dnd-action owns this local array during a drag (via consider), then we commit
@@ -134,24 +127,26 @@
   <div id="app">
     <div class="sticky-header">
       <header class="toolbar">
-        <strong class="app-title">Schedulizer <span class="tool-tag">Distribute</span></strong>
-        <button on:click={() => newProject(true)}>New Project</button>
-        <button on:click={() => fileOpenInput.click()}>Open&hellip;</button>
-        <button on:click={() => fileImportSignupInput.click()}>Import Sign-Up (CSV)&hellip;</button>
+        <span class="app-title"><a href="index.html" class="app-title-link">Schedulizer</a> <span class="tool-tag">Distribute</span></span>
+        <MenuButton label="File">
+          <button on:click={() => newProject(true)}>New Project</button>
+          <button on:click={() => fileOpenInput.click()}>Open&hellip;</button>
+          <button on:click={exportJSON}>Save As&hellip;</button>
+          <button on:click={() => fileImportSignupInput.click()}>Import Sign-Up CSV&hellip;</button>
+          <button on:click={exportCSV}>Export CSV&hellip;</button>
+        </MenuButton>
+        <MenuButton label="Edit">
+          <button on:click={undo} disabled={!$canUndo} title="Undo (Cmd/Ctrl+Z)">&larr; Undo</button>
+          <button on:click={redo} disabled={!$canRedo} title="Redo (Cmd/Ctrl+Shift+Z)">&rarr; Redo</button>
+          <MenuButton label="Auto-Assign">
+            <button on:click={() => assignFirstChoices()}>Place 1st Choices</button>
+            {#each Array(Math.max(0, maxRank - 1)) as _, i}
+              <button on:click={() => fillUnderMinimumGroupsAtRank(i + 2)}>Fill Under-Minimum: {ordinal(i + 2)} Choices</button>
+            {/each}
+          </MenuButton>
+        </MenuButton>
         <button on:click={() => (helpOpen = true)}>Help</button>
-        <button on:click={undo} disabled={!$canUndo} title="Undo (Cmd/Ctrl+Z)">&larr; Undo</button>
-        <button on:click={redo} disabled={!$canRedo} title="Redo (Cmd/Ctrl+Shift+Z)">&rarr; Redo</button>
         <span class="spacer"></span>
-        <select bind:value={autoAssignValue} on:change={handleAutoAssignChange}>
-          <option value="" disabled>Auto-Assign&hellip;</option>
-          <option value="first">Place 1st Choices</option>
-          {#each Array(Math.max(0, maxRank - 1)) as _, i}
-            <option value={String(i + 2)}>Fill Under-Minimum: {ordinal(i + 2)} Choices</option>
-          {/each}
-        </select>
-        <button on:click={exportJSON}>Save As&hellip;</button>
-        <button on:click={exportCSV}>Export CSV</button>
-        <a href="index.html" class="tool-switch-link">&larr; Home</a>
         <input
           type="file"
           bind:this={fileOpenInput}
@@ -174,7 +169,7 @@
     </div>
 
     {#if $project.groups.length === 0}
-      <div class="groups-board"><div class="board-empty-hint">No groups yet — click "Import Sign-Up (CSV)…" above to derive groups from your sign-up form (or open a project file that already has them).</div></div>
+      <div class="groups-board"><div class="board-empty-hint">No groups yet — click "Import Sign-Up CSV…" above to derive groups from your sign-up form (or open a project file that already has them).</div></div>
     {:else}
       <main
         class="groups-board"
@@ -243,15 +238,16 @@
   <h3>Getting started</h3>
   <p>Start a new project, open a saved <code>.json</code> file, or import a sign-up CSV
     exported from Google Forms — that import creates your groups automatically, one per
-    group column in the form. Your work auto-saves in this browser as a safety net, but
-    use <strong>Save As&hellip;</strong> (or <kbd>Cmd/Ctrl+S</kbd>) to export a
+    group column in the form (all under the <strong>File</strong> menu). Your work
+    auto-saves in this browser as a safety net, but use <strong>Save As&hellip;</strong>
+    (also in <strong>File</strong>, or <kbd>Cmd/Ctrl+S</kbd>) to export a
     <code>.json</code> file you can keep or reopen later.</p>
 
   <h3>Undo / Redo</h3>
   <p>Every change that affects saved data — moving people or groups, editing a field,
-    importing a sign-up CSV, auto-assigning — can be undone with the
-    <strong>Undo</strong> button (or <kbd>Cmd/Ctrl+Z</kbd>) and reapplied with
-    <strong>Redo</strong> (or <kbd>Cmd/Ctrl+Shift+Z</kbd>). Typing in a field groups into
+    importing a sign-up CSV, auto-assigning — can be undone with <strong>Edit &rarr;
+    Undo</strong> (or <kbd>Cmd/Ctrl+Z</kbd>) and reapplied with <strong>Edit &rarr;
+    Redo</strong> (or <kbd>Cmd/Ctrl+Shift+Z</kbd>). Typing in a field groups into
     a single undo step rather than one per keystroke. Highlighting candidates isn't
     tracked, since it doesn't change any saved data. Starting a new project or opening a
     different file clears this history — you can't undo back into a document you've
@@ -306,8 +302,8 @@
     may still have real preferences worth recording.</p>
 
   <h3>Placing by preference</h3>
-  <p>The <strong>Auto-Assign&hellip;</strong> menu runs one placement step at a time, so
-    you can check the board between steps. <strong>Place 1st Choices</strong> puts
+  <p>The <strong>Edit &rarr; Auto-Assign</strong> submenu runs one placement step
+    at a time, so you can check the board between steps. <strong>Place 1st Choices</strong> puts
     everyone still unassigned into their 1st choice group, unconditionally. Each
     <strong>Fill Under-Minimum: Nth Choices</strong> step then pulls people whose Nth
     choice is an under-filled group in from whichever other group currently has more
@@ -363,9 +359,9 @@
     catch and fix it (or the comment) afterward.</p>
 
   <h3>Exporting</h3>
-  <p><strong>Save As&hellip;</strong> downloads the full project as JSON.
-    <strong>Export CSV</strong> downloads one row per person with their group, name,
-    phone, email, and leader flag.</p>
+  <p>Both live in the <strong>File</strong> menu: <strong>Save As&hellip;</strong>
+    downloads the full project as JSON, <strong>Export CSV&hellip;</strong> downloads one row
+    per person with their group, name, phone, email, and leader flag.</p>
 </HelpModal>
 
 <Toast />

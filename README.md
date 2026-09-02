@@ -69,7 +69,7 @@ before merging.
   and fix it afterward, rather than the drop being refused outright.
 - **Save / Export**: "Save As…" downloads the full project file (re-open it later the
   same way) — it always prompts, since there's no way to overwrite a previously-saved
-  file in place. "Export CSV" downloads a flattened, spreadsheet-friendly view: one row
+  file in place. "Export CSV…" downloads a flattened, spreadsheet-friendly view: one row
   per assigned leader (day, group, name, contact), plus a trailing block of anyone still
   unassigned.
 - **Autosave**: the current project is mirrored into browser `localStorage` after every
@@ -120,7 +120,7 @@ itself — there's no participant concept here at all.
 - **Groups**: not created manually — import a sign-up CSV (see below) to derive them
   from the form's own columns, or open a `.json` project that already has them. Each
   group's minimum is editable inline (click the number in its card, defaults to 10).
-- **Import Sign-Up (CSV)**: built specifically for a Google Forms **Multiple-choice
+- **Import Sign-Up CSV**: built specifically for a Google Forms **Multiple-choice
   grid** question — each group as a grid row, choices labeled `1st Choice`,
   `2nd Choice`, etc. as grid columns. (Not Forms' separate dedicated "Ranking" question
   type — that exports differently and won't parse here.) Choosing a file opens a
@@ -182,7 +182,7 @@ itself — there's no participant concept here at all.
   yellow) rather than picking just one. Dropping someone on a night they're not
   available for is **allowed, not blocked** — this badge is how you catch and fix it (or
   the comment) afterward.
-- **Auto-Assign… menu**: runs one placement step at a time. **Place 1st Choices** puts
+- **Auto-Assign submenu** (under Edit): runs one placement step at a time. **Place 1st Choices** puts
   everyone still unassigned into their 1st-choice group, unconditionally. Each
   **Fill Under-Minimum: Nth Choices** step pulls people whose Nth choice is an
   under-filled group in from whichever other group currently has more people —
@@ -203,7 +203,7 @@ itself — there's no participant concept here at all.
   also turns it off.
 - **Save / Export**: same as the Schedule tool — "Save As…" downloads the full project
   JSON (always prompts; there's no way to overwrite a previously-saved file in place),
-  "Export CSV" downloads one row per person with their group, name, phone, email, and
+  "Export CSV…" downloads one row per person with their group, name, phone, email, and
   leader flag.
 - **Undo / Redo**: same as the Schedule tool — every change that affects saved data
   (placements, field edits, sign-up import, auto-assign) can be undone (**Undo** or

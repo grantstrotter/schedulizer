@@ -140,8 +140,7 @@
     <div class="contact-line">Comments:</div>
     <textarea
       class="inline-input comments-field"
-      rows="2"
-      placeholder="e.g. can only attend every other week"
+      rows="4"
       value={person.comments}
       on:input={(e) => updateComments(person.id, e.target.value)}
     ></textarea>

@@ -140,7 +140,7 @@
             <option value={String(i + 2)}>Fill Under-Minimum: {ordinal(i + 2)} Choices</option>
           {/each}
         </select>
-        <button on:click={exportJSON}>Save</button>
+        <button on:click={exportJSON}>Save As&hellip;</button>
         <button on:click={exportCSV}>Export CSV</button>
         <a href="index.html" class="tool-switch-link">&larr; Home</a>
         <input
@@ -235,8 +235,8 @@
   <p>Start a new project, open a saved <code>.json</code> file, or import a sign-up CSV
     exported from Google Forms — that import creates your groups automatically, one per
     group column in the form. Your work auto-saves in this browser as a safety net, but
-    use <strong>Save</strong> (or <kbd>Cmd/Ctrl+S</kbd>) to export a <code>.json</code>
-    file you can keep or reopen later.</p>
+    use <strong>Save As&hellip;</strong> (or <kbd>Cmd/Ctrl+S</kbd>) to export a
+    <code>.json</code> file you can keep or reopen later.</p>
 
   <h3>Importing a sign-up CSV</h3>
   <p>Built specifically for a Google Forms <strong>Multiple-choice grid</strong> question,
@@ -344,8 +344,9 @@
     catch and fix it (or the comment) afterward.</p>
 
   <h3>Exporting</h3>
-  <p><strong>Save</strong> downloads the full project as JSON. <strong>Export CSV</strong>
-    downloads one row per person with their group, name, phone, email, and leader flag.</p>
+  <p><strong>Save As&hellip;</strong> downloads the full project as JSON.
+    <strong>Export CSV</strong> downloads one row per person with their group, name,
+    phone, email, and leader flag.</p>
 </HelpModal>
 
 <Toast />

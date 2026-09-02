@@ -67,9 +67,10 @@ before merging.
   someone (or a group, based on its nested leaders) on a night that doesn't match is
   **allowed, not blocked** — a 📅 badge shows up on the affected card so you can catch
   and fix it afterward, rather than the drop being refused outright.
-- **Save / Export**: "Save" downloads the full project file (re-open it later the same
-  way). "Export CSV" downloads a flattened, spreadsheet-friendly view: one row per
-  assigned leader (day, group, name, contact), plus a trailing block of anyone still
+- **Save / Export**: "Save As…" downloads the full project file (re-open it later the
+  same way) — it always prompts, since there's no way to overwrite a previously-saved
+  file in place. "Export CSV" downloads a flattened, spreadsheet-friendly view: one row
+  per assigned leader (day, group, name, contact), plus a trailing block of anyone still
   unassigned.
 - **Autosave**: the current project is mirrored into browser `localStorage` after every
   change, purely as a refresh/crash safety net. It is **not** a substitute for exporting
@@ -194,9 +195,10 @@ itself — there's no participant concept here at all.
   one group highlights at a time; a banner at the top names which one and has its own
   stop button — the group's own button (now reading "Stop Highlighting"), or `Esc`,
   also turns it off.
-- **Save / Export**: same as the Schedule tool — "Save" downloads the full project
-  JSON, "Export CSV" downloads one row per person with their group, name, phone,
-  email, and leader flag.
+- **Save / Export**: same as the Schedule tool — "Save As…" downloads the full project
+  JSON (always prompts; there's no way to overwrite a previously-saved file in place),
+  "Export CSV" downloads one row per person with their group, name, phone, email, and
+  leader flag.
 
 ## Data model — Distribute Participants
 

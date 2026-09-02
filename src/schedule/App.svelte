@@ -98,7 +98,7 @@
       <button on:click={() => fileImportCsvInput.click()}>Import People (CSV)&hellip;</button>
       <button on:click={() => (helpOpen = true)}>Help</button>
       <span class="spacer"></span>
-      <button on:click={exportJSON}>Save</button>
+      <button on:click={exportJSON}>Save As&hellip;</button>
       <button on:click={exportCSV}>Export CSV</button>
       <a href="index.html" class="tool-switch-link">&larr; Home</a>
       <input
@@ -172,8 +172,9 @@
   <h3>Getting started</h3>
   <p>Start a new project, open a saved <code>.json</code> file, or drag one onto the
     opening screen. Your work auto-saves in this browser as you go, but that's just a
-    safety net for refreshes — use <strong>Save</strong> (or <kbd>Cmd/Ctrl+S</kbd>) to
-    actually export a <code>.json</code> file you can keep or reopen later.</p>
+    safety net for refreshes — use <strong>Save As&hellip;</strong> (or
+    <kbd>Cmd/Ctrl+S</kbd>) to actually export a <code>.json</code> file you can keep or
+    reopen later.</p>
 
   <h3>Days</h3>
   <p>Seven columns across the top, one per day, each with a <strong>Groups</strong>
@@ -204,7 +205,7 @@
     mismatch is one of its nested leaders, so it's easy to catch and fix afterward.</p>
 
   <h3>Exporting</h3>
-  <p><strong>Save</strong> downloads the full project as JSON (reopen it anytime).
+  <p><strong>Save As&hellip;</strong> downloads the full project as JSON (reopen it anytime).
     <strong>Export CSV</strong> downloads a flattened, spreadsheet-friendly view of the
     schedule — one row per assigned person, plus a trailing block of anyone still
     unassigned.</p>

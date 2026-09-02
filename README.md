@@ -161,7 +161,8 @@ itself — there's no participant concept here at all.
   auto-assign steps (below) skip a pinned participant entirely, whether they're already
   placed or not, so it never gets moved or filled in for them. Shows a 📌 badge next to
   their name when checked. Leaders aren't offered this toggle since auto-assign never
-  moves them anyway.
+  moves them anyway — turning someone into a leader (the Leader checkbox, or dragging
+  them into the Leaders drawer) clears it for the same reason.
 - **Comments**: an expanded person card has an editable Comments box, imported from the
   sign-up form's free-text question (if present) and editable by hand afterward, with a
   **Dismiss: Comment has been reviewed** checkbox below it — check it off once you've

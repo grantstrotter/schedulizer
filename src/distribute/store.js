@@ -229,6 +229,7 @@ export function toggleLeader(personId, isLeader) {
   mutate(p => {
     const person = findPerson(p, personId);
     person.isLeader = isLeader;
+    if (isLeader) person.pinned = false; // pinning only means something for participants
     p.leaders = p.leaders.filter(x => x.id !== personId);
     p.participants = p.participants.filter(x => x.id !== personId);
     (isLeader ? p.leaders : p.participants).push(person);
@@ -299,6 +300,7 @@ export function setDrawerMembership(isLeaderDrawer, personIds) {
       removePersonFromAllPlacements(p, id);
       const person = findPerson(p, id);
       person.isLeader = isLeaderDrawer;
+      if (isLeaderDrawer) person.pinned = false; // pinning only means something for participants
       if (!previousIds.has(id)) person.commentAddressed = false;
     });
     const allPeople = getAllPeople(p);

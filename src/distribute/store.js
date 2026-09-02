@@ -81,6 +81,7 @@ function normalizePerson(isLeader) {
     availability: Array.isArray(person.availability) ? person.availability.filter(d => DAYS.includes(d)) : [],
     preferences: Array.isArray(person.preferences) ? person.preferences.filter(id => typeof id === 'string') : [],
     communityBuilder: !!person.communityBuilder, // manual-only flag, never set by CSV import
+    pinned: !!person.pinned, // manual-only flag; auto-assign skips a pinned participant entirely
     comments: typeof person.comments === 'string' ? person.comments : '',
     commentAddressed: !!person.commentAddressed
   });
@@ -165,13 +166,13 @@ export function deletePerson(personId, fullName) {
 
 export function addLeader() {
   const id = uid();
-  mutate(p => { p.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [], communityBuilder: false, comments: '', commentAddressed: false }); });
+  mutate(p => { p.leaders.push({ id, first: '', last: '', phone: '', email: '', isLeader: true, availability: [], preferences: [], communityBuilder: false, pinned: false, comments: '', commentAddressed: false }); });
   return id;
 }
 
 export function addParticipant() {
   const id = uid();
-  mutate(p => { p.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [], communityBuilder: false, comments: '', commentAddressed: false }); });
+  mutate(p => { p.participants.push({ id, first: '', last: '', phone: '', email: '', isLeader: false, availability: [], preferences: [], communityBuilder: false, pinned: false, comments: '', commentAddressed: false }); });
   return id;
 }
 
@@ -235,6 +236,10 @@ export function toggleLeader(personId, isLeader) {
 
 export function toggleCommunityBuilder(personId, value) {
   mutate(p => { findPerson(p, personId).communityBuilder = value; });
+}
+
+export function togglePinned(personId, value) {
+  mutate(p => { findPerson(p, personId).pinned = value; });
 }
 
 // Setting a rank means "move this group to position N, shifting everyone else down"
@@ -315,13 +320,13 @@ export function maxPreferenceRank(p) {
 
 export function assignFirstChoices() {
   const p = get(project);
-  const unplaced = p.participants.filter(x => !isPersonPlaced(p, x.id) && x.preferences.length > 0);
+  const unplaced = p.participants.filter(x => !isPersonPlaced(p, x.id) && x.preferences.length > 0 && !x.pinned);
   if (unplaced.length === 0) {
     showToast('Nobody unassigned has ranked preferences to place.');
     return;
   }
   mutate(p => {
-    p.participants.filter(x => !isPersonPlaced(p, x.id) && x.preferences.length > 0).forEach(x => {
+    p.participants.filter(x => !isPersonPlaced(p, x.id) && x.preferences.length > 0 && !x.pinned).forEach(x => {
       const group = findGroup(p, x.preferences[0]);
       if (group) {
         group.personIds.push(x.id);
@@ -347,7 +352,7 @@ export function assignFirstChoices() {
 export function fillUnderMinimumGroupsAtRank(rank) {
   let moved = 0;
   mutate(p => {
-    const pool = () => p.participants.filter(x => x.preferences.length > 0 && isPersonPlaced(p, x.id));
+    const pool = () => p.participants.filter(x => x.preferences.length > 0 && isPersonPlaced(p, x.id) && !x.pinned);
     let progress = true;
     while (progress) {
       progress = false;
@@ -449,7 +454,7 @@ export function runSignupImport(lines, mapping) {
       } else {
         // Sign-up rows are always participants — leaders are user-created, never
         // detected from the form itself (there's no "Is Leader" mapping).
-        const person = { id: uid(), first, last, phone, email, isLeader: false, availability, preferences, communityBuilder: false, comments, commentAddressed: false };
+        const person = { id: uid(), first, last, phone, email, isLeader: false, availability, preferences, communityBuilder: false, pinned: false, comments, commentAddressed: false };
         p.participants.push(person);
         imported++;
       }

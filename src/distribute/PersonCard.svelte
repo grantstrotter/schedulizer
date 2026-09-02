@@ -4,7 +4,7 @@
   import {
     project, highlightGroupId, findGroup, getPersonGroup, matchInfo, needsAvailabilityReview,
     isMeaningfulComment, deletePerson, updatePersonField, updateComments, setCommentAddressed,
-    togglePersonAvailability, toggleLeader, toggleCommunityBuilder, setGroupRank, MATCH_TIER_COUNT
+    togglePersonAvailability, toggleLeader, toggleCommunityBuilder, togglePinned, setGroupRank, MATCH_TIER_COUNT
   } from './store.js';
 
   export let person;
@@ -34,6 +34,7 @@
     <span class="person-name">{fullName}</span>
     {#if person.isLeader}<span class="leader-emoji">🎯</span>{/if}
     {#if person.communityBuilder}<span class="community-builder-emoji" title="Community Builder">⭐</span>{/if}
+    {#if person.pinned}<span class="pin-emoji" title="Pinned — auto-assign will skip this person">📌</span>{/if}
     {#if match}
       <span
         class="match-badge match-{match.tier}"
@@ -100,6 +101,13 @@
       <input type="checkbox" checked={person.communityBuilder} on:change={(e) => toggleCommunityBuilder(person.id, e.target.checked)} />
       Community Builder
     </label>
+
+    {#if !person.isLeader}
+      <label class="contact-line leader-toggle">
+        <input type="checkbox" checked={person.pinned} on:change={(e) => togglePinned(person.id, e.target.checked)} />
+        Pinned (auto-assign will skip this person)
+      </label>
+    {/if}
 
     <hr class="detail-divider" />
 

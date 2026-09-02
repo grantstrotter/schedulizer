@@ -275,7 +275,7 @@ button:hover { background: #eef1f5; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leader-emoji, .community-builder-emoji {
+.leader-emoji, .community-builder-emoji, .pin-emoji {
   flex-shrink: 0;
 }
 

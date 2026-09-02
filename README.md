@@ -149,6 +149,12 @@ itself — there's no participant concept here at all.
   right below Leader) for people especially effective at building community. Always
   starts unchecked and is never set by the sign-up import — only by hand. Shows a ⭐
   badge next to their name when checked.
+- **Pinned**: a manual, participants-only flag (checkbox on an expanded person card,
+  below Community Builder) for someone whose group has already been decided by hand —
+  auto-assign steps (below) skip a pinned participant entirely, whether they're already
+  placed or not, so it never gets moved or filled in for them. Shows a 📌 badge next to
+  their name when checked. Leaders aren't offered this toggle since auto-assign never
+  moves them anyway.
 - **Comments**: an expanded person card has an editable Comments box, imported from the
   sign-up form's free-text question (if present) and editable by hand afterward, with a
   **Dismiss: Comment has been reviewed** checkbox below it — check it off once you've
@@ -179,8 +185,8 @@ itself — there's no participant concept here at all.
   evened out at this rank, so one click reaches a stable result (re-running the same
   step again immediately is a no-op). Run 2nd, then 3rd, and so on as needed, checking
   the board between steps. Leaders are never moved by these steps (they're placed by
-  hand and stay put). Anything still under-filled afterward is left for manual
-  adjustment.
+  hand and stay put), and neither is any pinned participant. Anything still
+  under-filled afterward is left for manual adjustment.
 - **Highlight Candidates**: each group has a button that shimmers everyone outside that
   group (elsewhere or unplaced) who ranked it, colored by the same rank-badge colors —
   plus a small number badge in the corner with the exact rank, so it's not
@@ -201,10 +207,10 @@ itself — there's no participant concept here at all.
     { "id": "...", "name": "Wednesday Night - Young Adults", "day": "wednesday", "personIds": [], "minimumRequired": 10 }
   ],
   "leaders": [
-    { "id": "...", "first": "Jane", "last": "Doe", "phone": "", "email": "jane@example.com", "isLeader": true, "availability": [], "preferences": [], "communityBuilder": false, "comments": "", "commentAddressed": false }
+    { "id": "...", "first": "Jane", "last": "Doe", "phone": "", "email": "jane@example.com", "isLeader": true, "availability": [], "preferences": [], "communityBuilder": false, "pinned": false, "comments": "", "commentAddressed": false }
   ],
   "participants": [
-    { "id": "...", "first": "John", "last": "Smith", "phone": "", "email": "john@example.com", "isLeader": false, "availability": ["sunday"], "preferences": ["<groupId>", "..."], "communityBuilder": false, "comments": "Needs a ride", "commentAddressed": false }
+    { "id": "...", "first": "John", "last": "Smith", "phone": "", "email": "john@example.com", "isLeader": false, "availability": ["sunday"], "preferences": ["<groupId>", "..."], "communityBuilder": false, "pinned": false, "comments": "Needs a ride", "commentAddressed": false }
   ]
 }
 ```
@@ -214,7 +220,9 @@ its name (whole-word match against a full day name) at creation or rename time, 
 groups aren't dragged onto day columns in this tool the way they are in Schedule.
 `preferences` is an ordered list of group ids, most-preferred first. `commentAddressed`
 resets to `false` whenever the comment is edited or the person is moved to a different
-group/drawer — see "Comments" above.
+group/drawer — see "Comments" above. `pinned` is stored on leaders too (for a uniform
+person shape) but only ever set from the UI on participants, since it's meaningless for
+leaders — see "Pinned" above.
 
 ## Known limitations
 

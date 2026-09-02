@@ -79,6 +79,7 @@ before merging.
 
 ```jsonc
 {
+  "version": 1, // bumped only if this shape changes in the future; not currently read back in
   "days": {
     "sunday":    { "groupIds": [], "personIds": [] }, // personIds = people on this day but not in a group
     "monday":    { "groupIds": [], "personIds": [] },
@@ -195,6 +196,7 @@ itself — there's no participant concept here at all.
 
 ```jsonc
 {
+  "version": 1, // bumped only if this shape changes in the future; not currently read back in
   "groups": [
     { "id": "...", "name": "Wednesday Night - Young Adults", "day": "wednesday", "personIds": [], "minimumRequired": 10 }
   ],

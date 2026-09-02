@@ -4,6 +4,7 @@ import { uid, csvEscape, parseAvailability, parseCSVRow, downloadBlob } from '..
 import { showToast } from '../lib/toast.js';
 
 const AUTOSAVE_KEY = 'schedulizer_distribute_v1';
+const SCHEMA_VERSION = 1; // bumped whenever the exported project JSON's shape changes
 export const MATCH_TIER_COUNT = 5; // ranks 5th-or-worse all share the last (worst) tier's color
 
 export const project = writable(null);
@@ -460,7 +461,8 @@ export function runSignupImport(lines, mapping) {
 
 export function exportJSON() {
   const p = get(project);
-  const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
+  const data = { version: SCHEMA_VERSION, ...p };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   downloadBlob(blob, 'schedulizer-distribute-project.json');
 }
 

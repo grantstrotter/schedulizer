@@ -4,6 +4,7 @@ import { uid, csvEscape, parseCSVLine, parseAvailability, downloadBlob } from '.
 import { showToast } from '../lib/toast.js';
 
 const AUTOSAVE_KEY = 'schedulizer_schedule_v1';
+const SCHEMA_VERSION = 1; // bumped whenever the exported project JSON's shape changes
 
 export const project = writable(null);
 export const started = writable(false);
@@ -218,7 +219,8 @@ export function setDrawerLeaders(personIds) {
 
 export function exportJSON() {
   const p = get(project);
-  const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
+  const data = { version: SCHEMA_VERSION, ...p };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   downloadBlob(blob, 'schedulizer-project.json');
 }
 

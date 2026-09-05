@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { DAYS, DAY_LABELS } from '../lib/constants.js';
-import { uid, csvEscape, parseCSVLine, parseAvailability, downloadBlob } from '../lib/util.js';
+import { uid, csvEscape, parseCSVLine, parseAvailability, formatPhone, downloadBlob } from '../lib/util.js';
 import { showToast } from '../lib/toast.js';
 import { createUndoManager } from '../lib/undoable.js';
 
@@ -234,16 +234,16 @@ export function exportCSV() {
       if (!g) return;
       g.personIds.forEach(pid => {
         const person = findPerson(p, pid);
-        if (person) rows.push([DAY_LABELS[day], g.name, person.first, person.last, person.phone, person.email]);
+        if (person) rows.push([DAY_LABELS[day], g.name, person.first, person.last, formatPhone(person.phone), person.email]);
       });
     });
     p.days[day].personIds.forEach(pid => {
       const person = findPerson(p, pid);
-      if (person) rows.push([DAY_LABELS[day], '', person.first, person.last, person.phone, person.email]);
+      if (person) rows.push([DAY_LABELS[day], '', person.first, person.last, formatPhone(person.phone), person.email]);
     });
   });
   p.leaders.filter(person => !isPersonPlaced(p, person.id)).forEach(person => {
-    rows.push(['(unassigned)', '', person.first, person.last, person.phone, person.email]);
+    rows.push(['(unassigned)', '', person.first, person.last, formatPhone(person.phone), person.email]);
   });
   const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });

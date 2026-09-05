@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { DAYS, DAY_LABELS } from '../lib/constants.js';
-import { uid, csvEscape, parseAvailability, parseCSVRow, downloadBlob } from '../lib/util.js';
+import { uid, csvEscape, parseAvailability, parseCSVRow, formatPhone, downloadBlob } from '../lib/util.js';
 import { showToast } from '../lib/toast.js';
 import { createUndoManager } from '../lib/undoable.js';
 
@@ -481,11 +481,11 @@ export function exportCSV() {
     g.personIds.forEach(pid => {
       const person = findPerson(p, pid);
       if (!person) return;
-      rows.push([g.name, person.first, person.last, person.phone, person.email, person.isLeader]);
+      rows.push([g.name, person.first, person.last, formatPhone(person.phone), person.email, person.isLeader]);
     });
   });
   getAllPeople(p).filter(x => !isPersonPlaced(p, x.id)).forEach(person => {
-    rows.push(['(unassigned)', person.first, person.last, person.phone, person.email, person.isLeader]);
+    rows.push(['(unassigned)', person.first, person.last, formatPhone(person.phone), person.email, person.isLeader]);
   });
   const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });

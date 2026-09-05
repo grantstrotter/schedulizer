@@ -205,7 +205,9 @@ itself — there's no participant concept here at all.
 - **Save / Export**: same as the Schedule tool — "Save As…" downloads the full project
   JSON (always prompts; there's no way to overwrite a previously-saved file in place),
   "Export CSV…" downloads one row per person with their group, name, phone, email, and
-  leader flag.
+  leader flag. Phone numbers are normalized to `999-999-9999` when they parse as a
+  10-digit US number (with or without a leading `1`); anything else is exported exactly
+  as entered.
 - **Undo / Redo**: same as the Schedule tool — every change that affects saved data
   (placements, field edits, sign-up import, auto-assign) can be undone (**Undo** or
   `Cmd/Ctrl+Z`) and reapplied (**Redo** or `Cmd/Ctrl+Shift+Z`); rapid same-field edits

@@ -53,6 +53,16 @@ export function parseAvailability(raw, delimiter = '|') {
     .filter(Boolean);
 }
 
+// Formats a US phone number as 999-999-9999 for CSV export. Anything that isn't
+// exactly 10 digits (an international number, an extension, a partial entry, blank)
+// is left exactly as typed rather than guessed at.
+export function formatPhone(raw) {
+  let digits = (raw || '').replace(/\D/g, '');
+  if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
+  if (digits.length !== 10) return raw || '';
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
